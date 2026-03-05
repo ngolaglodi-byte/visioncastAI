@@ -1,0 +1,42 @@
+#pragma once
+
+/// @file main_window.h
+/// @brief Main application window with dockable panels.
+
+#include <QMainWindow>
+
+class PreviewPanel;
+class OverlayEditor;
+class TalentManager;
+class OutputConfig;
+class MonitoringPanel;
+
+namespace visioncast_ui {
+
+/// Top-level application window for the VisionCast broadcast control room.
+class MainWindow : public QMainWindow {
+    Q_OBJECT
+
+public:
+    explicit MainWindow(QWidget* parent = nullptr);
+    ~MainWindow() override;
+
+private slots:
+    void onSourceChanged(const QString& source);
+    void onOverlayToggled(bool enabled);
+    void onGoLive();
+    void onStopBroadcast();
+
+private:
+    PreviewPanel* previewPanel_ = nullptr;
+    OverlayEditor* overlayEditor_ = nullptr;
+    TalentManager* talentManager_ = nullptr;
+    OutputConfig* outputConfig_ = nullptr;
+    MonitoringPanel* monitoringPanel_ = nullptr;
+
+    void setupMenuBar();
+    void setupDockWidgets();
+    QDockWidget* createDock(const QString& title, QWidget* widget);
+};
+
+} // namespace visioncast_ui

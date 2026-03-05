@@ -1,0 +1,22 @@
+{
+  "name": "default",
+  "description": "Default lower-third overlay template",
+  "style": {
+    "background_opacity": 0.6,
+    "background_color": [0, 0, 0],
+    "text_color": [255, 255, 255],
+    "subtitle_color": [200, 200, 200],
+    "font_scale": 1.0,
+    "thickness": 2,
+    "band_height_ratio": 0.18,
+    "animation": "slide_left",
+    "animation_duration_ms": 500
+  },
+  "layout": {
+    "title_offset_x": 40,
+    "title_offset_y": 50,
+    "subtitle_offset_x": 40,
+    "subtitle_offset_y": 90,
+    "logo_position": "bottom_right"
+  }
+}

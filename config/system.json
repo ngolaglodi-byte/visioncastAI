@@ -1,0 +1,45 @@
+{
+  "engine": {
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "frame_rate": 25.0,
+    "pixel_format": "V210"
+  },
+  "ai": {
+    "model": "hog",
+    "tolerance": 0.45,
+    "process_every_n_frames": 3,
+    "zmq_endpoint": "tcp://127.0.0.1:5555",
+    "zmq_config_endpoint": "tcp://127.0.0.1:5556"
+  },
+  "output": {
+    "primary": {
+      "type": "decklink",
+      "device_index": 0,
+      "mode": "2160p25"
+    },
+    "ndi": {
+      "enabled": true,
+      "source_name": "VisionCast Program"
+    },
+    "recording": {
+      "enabled": false,
+      "path": "/recordings/",
+      "codec": "h265",
+      "bitrate_mbps": 50
+    }
+  },
+  "ui": {
+    "preview_resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "multiview_layout": {
+      "rows": 2,
+      "cols": 2
+    },
+    "monitoring_refresh_ms": 1000
+  }
+}
