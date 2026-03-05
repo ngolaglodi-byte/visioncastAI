@@ -4,7 +4,6 @@ Provides efficient 128-dimensional face encoding computation with
 LRU caching, batch support, and configurable jitter for accuracy.
 """
 
-import hashlib
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -134,8 +133,7 @@ class Encoding:
     @staticmethod
     def _location_key(loc: Tuple[int, int, int, int]) -> str:
         """Derive a hash key from a bounding-box tuple."""
-        raw = f"{loc[0]}:{loc[1]}:{loc[2]}:{loc[3]}"
-        return hashlib.md5(raw.encode()).hexdigest()  # noqa: S324
+        return f"{loc[0]}:{loc[1]}:{loc[2]}:{loc[3]}"
 
     def _cache_get(self, key: str) -> Optional[np.ndarray]:
         """Retrieve an encoding from the LRU cache."""

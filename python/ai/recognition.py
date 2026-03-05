@@ -96,7 +96,10 @@ class Recognition:
         confirm_frames: Frames an identity must be seen before confirmed.
         max_miss: Consecutive misses before a track is dropped.
         iou_threshold: Minimum IoU to associate a detection with an existing track.
+        confidence_window: Sliding-window size for confidence averaging.
     """
+
+    CONFIDENCE_WINDOW: int = 30
 
     def __init__(
         self,
@@ -107,6 +110,7 @@ class Recognition:
         confirm_frames: int = 3,
         max_miss: int = 5,
         iou_threshold: float = 0.3,
+        confidence_window: int = CONFIDENCE_WINDOW,
     ):
         if face_recognition is None:
             raise ImportError(
@@ -121,6 +125,7 @@ class Recognition:
         self.confirm_frames = confirm_frames
         self.max_miss = max_miss
         self.iou_threshold = iou_threshold
+        self.confidence_window = confidence_window
 
         self._tracks: Dict[str, _TrackedFace] = {}
         self._next_track_id: int = 0
@@ -227,8 +232,10 @@ class Recognition:
                     trk.talent = talent
                     trk.confidence_history.append(conf)
                     # Keep a sliding window.
-                    if len(trk.confidence_history) > 30:
-                        trk.confidence_history = trk.confidence_history[-30:]
+                    if len(trk.confidence_history) > self.confidence_window:
+                        trk.confidence_history = trk.confidence_history[
+                            -self.confidence_window :
+                        ]
             else:
                 tid = self._new_track_id()
                 self._tracks[tid] = _TrackedFace(talent, conf, loc)

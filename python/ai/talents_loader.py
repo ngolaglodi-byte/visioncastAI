@@ -182,7 +182,7 @@ class TalentsLoader:
             return None
         os.makedirs(self.cache_dir, exist_ok=True)
         img_hash = hashlib.sha256(image_path.encode()).hexdigest()[:16]
-        mtime = str(os.path.getmtime(image_path))
+        mtime = str(int(os.path.getmtime(image_path)))
         key = hashlib.sha256(f"{img_hash}:{mtime}".encode()).hexdigest()[:20]
         return os.path.join(self.cache_dir, f"enc_{key}.npy")
 
