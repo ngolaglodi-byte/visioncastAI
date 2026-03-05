@@ -6,7 +6,8 @@ import numpy as np
 
 # Charger la base talents
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TALENTS_PATH = os.path.join(BASE_DIR, "..", "talents", "talents.json")
+PROJECT_ROOT = os.path.normpath(os.path.join(BASE_DIR, ".."))
+TALENTS_PATH = os.path.join(PROJECT_ROOT, "talents", "talents.json")
 
 with open(TALENTS_PATH, "r", encoding="utf-8") as f:
     TALENTS = json.load(f)["talents"]
@@ -16,7 +17,7 @@ KNOWN_ENCODINGS = []
 KNOWN_METADATA = []
 
 for t in TALENTS:
-    image_path = os.path.normpath(os.path.join(BASE_DIR, t["image"]))
+    image_path = os.path.join(PROJECT_ROOT, t["image"])
     img = face_recognition.load_image_file(image_path)
     enc = face_recognition.face_encodings(img)
     if len(enc) > 0:
