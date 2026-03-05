@@ -4,4 +4,17 @@ from .face_detector import FaceDetector
 from .face_matcher import FaceMatcher
 from .talent_db import TalentDB
 
-__all__ = ["FaceDetector", "FaceMatcher", "TalentDB"]
+from .detection import Detection
+from .encoding import Encoding
+from .recognition import Recognition
+from .talents_loader import TalentsLoader
+
+__all__ = [
+    "FaceDetector",
+    "FaceMatcher",
+    "TalentDB",
+    "Detection",
+    "Encoding",
+    "Recognition",
+    "TalentsLoader",
+]
