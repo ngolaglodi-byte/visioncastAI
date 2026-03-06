@@ -26,6 +26,7 @@ set(UI_SOURCES
     src/monitoring_panel.cpp
     src/control_room.cpp
     src/design_panel.cpp
+    src/recognition_panel.cpp
 )
 
 add_executable(visioncast_ui ${UI_SOURCES})

@@ -15,6 +15,7 @@
 #include "visioncast_ui/talent_manager.h"
 #include "visioncast_ui/control_room.h"
 #include "visioncast_ui/design_panel.h"
+#include "visioncast_ui/recognition_panel.h"
 
 namespace visioncast_ui {
 
@@ -71,6 +72,10 @@ void MainWindow::setupDockWidgets() {
     // Dock: Design & Overlays
     designPanel_ = new DesignPanel(this);
     addDockWidget(Qt::RightDockWidgetArea, createDock("Design & Overlays", designPanel_));
+
+    // Dock: AI Recognition
+    recognitionPanel_ = new RecognitionPanel(this);
+    addDockWidget(Qt::RightDockWidgetArea, createDock("AI Recognition", recognitionPanel_));
 
     connect(controlRoom_, &ControlRoom::sourceSelected,
             this, &MainWindow::onSourceChanged);
