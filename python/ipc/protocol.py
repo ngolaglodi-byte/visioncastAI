@@ -153,3 +153,40 @@ class Heartbeat:
             "status": self.status,
             "fps": self.fps,
         })
+
+
+@dataclass
+class LogMessage:
+    """Log entry sent from a module to the monitoring panel.
+
+    Supports AI, Engine, and ZeroMQ log sources for unified
+    display in the monitoring panel.
+    """
+    source: str
+    level: str = "INFO"
+    message: str = ""
+    timestamp_ms: int = 0
+
+    VALID_SOURCES = ("ai", "engine", "zmq")
+    VALID_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+
+    def to_json(self) -> str:
+        """Serialize to JSON string for ZeroMQ transmission."""
+        return json.dumps({
+            "type": "log",
+            "source": self.source,
+            "level": self.level,
+            "message": self.message,
+            "timestamp_ms": self.timestamp_ms or int(time.time() * 1000),
+        })
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "LogMessage":
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        return cls(
+            source=data["source"],
+            level=data.get("level", "INFO"),
+            message=data.get("message", ""),
+            timestamp_ms=data.get("timestamp_ms", 0),
+        )
