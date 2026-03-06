@@ -1,13 +1,17 @@
 #pragma once
 
 /// @file monitoring_panel.h
-/// @brief System health monitoring panel.
+/// @brief System health monitoring panel with log views.
 
 #include <QWidget>
+#include <QString>
+#include <QDateTime>
 
 class QLabel;
 class QProgressBar;
 class QTimer;
+class QTabWidget;
+class QPlainTextEdit;
 
 namespace visioncast_ui {
 
@@ -20,7 +24,15 @@ struct SystemMetrics {
     int droppedFrames = 0;
 };
 
-/// Displays system health metrics (CPU, GPU, latency, FPS, dropped frames).
+/// A single log entry for the monitoring panel.
+struct LogEntry {
+    QDateTime timestamp;
+    QString source;
+    QString level;
+    QString message;
+};
+
+/// Displays system health metrics and log views for AI, Engine, and ZeroMQ.
 class MonitoringPanel : public QWidget {
     Q_OBJECT
 
@@ -29,7 +41,26 @@ public:
 
     void updateMetrics(const SystemMetrics& metrics);
 
+    void appendAiLog(const QString& message, const QString& level = "INFO");
+    void appendEngineLog(const QString& message, const QString& level = "INFO");
+    void appendZmqLog(const QString& message, const QString& level = "INFO");
+
+    void clearAiLogs();
+    void clearEngineLogs();
+    void clearZmqLogs();
+    void clearAllLogs();
+
+    int maxLogLines() const;
+    void setMaxLogLines(int maxLines);
+
 private:
+    QWidget* createMetricsTab();
+    QWidget* createLogTab(QPlainTextEdit*& logView);
+
+    void appendLog(QPlainTextEdit* logView, const QString& source,
+                   const QString& message, const QString& level);
+
+    // Metrics widgets
     QLabel* cpuLabel_ = nullptr;
     QLabel* gpuLabel_ = nullptr;
     QLabel* latencyLabel_ = nullptr;
@@ -38,6 +69,17 @@ private:
     QProgressBar* cpuBar_ = nullptr;
     QProgressBar* gpuBar_ = nullptr;
     QTimer* refreshTimer_ = nullptr;
+
+    // Tab widget
+    QTabWidget* tabWidget_ = nullptr;
+
+    // Log views
+    QPlainTextEdit* aiLogView_ = nullptr;
+    QPlainTextEdit* engineLogView_ = nullptr;
+    QPlainTextEdit* zmqLogView_ = nullptr;
+
+    static constexpr int kDefaultMaxLogLines = 1000;
+    int maxLogLines_ = kDefaultMaxLogLines;
 };
 
 } // namespace visioncast_ui

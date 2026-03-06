@@ -40,6 +40,11 @@
       "rows": 2,
       "cols": 2
     },
-    "monitoring_refresh_ms": 1000
+    "monitoring_refresh_ms": 1000,
+    "monitoring": {
+      "max_log_lines": 1000,
+      "log_level": "INFO",
+      "log_sources": ["ai", "engine", "zmq"]
+    }
   }
 }
