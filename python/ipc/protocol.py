@@ -26,6 +26,7 @@ class TalentOverlayMessage:
     filters: Dict[str, Any] = field(default_factory=dict)
     animations: Dict[str, Any] = field(default_factory=dict)
     confidence: float = 0.0
+    display_duration_ms: float = 5000.0
 
     def to_json(self) -> str:
         """Serialize to JSON string for ZeroMQ transmission."""
@@ -40,6 +41,7 @@ class TalentOverlayMessage:
             "filters": self.filters,
             "animations": self.animations,
             "confidence": self.confidence,
+            "display_duration_ms": self.display_duration_ms,
         })
 
     @classmethod
@@ -56,6 +58,7 @@ class TalentOverlayMessage:
             filters=data.get("filters", {}),
             animations=data.get("animations", {}),
             confidence=data.get("confidence", 0.0),
+            display_duration_ms=data.get("display_duration_ms", 5000.0),
         )
 
 

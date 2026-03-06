@@ -90,6 +90,7 @@ struct LowerThirdDesc {
     float   fontScale        = 1.0f;
     int     thickness        = 2;
     float   bandHeightRatio  = 0.15f;       ///< Fraction of frame height.
+    double  displayDurationMs = 0.0;        ///< Configurable display duration in ms (0 = use caller's value).
     AnimationDesc entryAnim;
     AnimationDesc exitAnim;
 };

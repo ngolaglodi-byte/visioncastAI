@@ -640,7 +640,7 @@ void GpuCompositor::showLowerThird(const std::string& title,
     }
 
     impl_->lowerThirdDesc     = lt;
-    impl_->lowerThirdDuration = durationMs;
+    impl_->lowerThirdDuration = (lt.displayDurationMs > 0.0) ? lt.displayDurationMs : durationMs;
     impl_->lowerThirdElapsedMs = 0.0;
     impl_->lowerThirdActive   = true;
 
@@ -722,6 +722,9 @@ bool GpuCompositor::loadTemplate(const std::string& jsonPath) {
     tmpl.exitAnimation.durationMs = exitDuration;
     tmpl.exitAnimation.easing     = parseEasingType(easingStr);
     tmpl.lowerThird.exitAnim      = tmpl.exitAnimation;
+
+    // Parse configurable lower-third display duration.
+    tmpl.lowerThird.displayDurationMs = jsonNumber(style, "display_duration_ms", 0.0);
 
     // --- Transition sub-object ---
     std::string transObj = jsonObject(json, "transition");

@@ -73,6 +73,7 @@ class TestOverlayTemplateSchema:
             "band_height_ratio",
             "animation",
             "animation_duration_ms",
+            "display_duration_ms",
         ):
             assert key in style, f"Missing style key: {key}"
 
@@ -97,6 +98,10 @@ class TestOverlayTemplateSchema:
 
     def test_animation_duration_positive(self, template_data):
         assert template_data["style"]["animation_duration_ms"] > 0
+
+    def test_display_duration_ms_positive(self, template_data):
+        style = template_data["style"]
+        assert style["display_duration_ms"] > 0
 
     def test_exit_animation_is_valid(self, template_data):
         style = template_data["style"]
@@ -215,3 +220,81 @@ class TestTemplateDiscovery:
                 data = json.load(f)
             assert "name" in data, f"{fname} missing 'name' key"
             assert "style" in data, f"{fname} missing 'style' key"
+
+
+# =====================================================================
+# Lower-third display timer configuration
+# =====================================================================
+
+class TestLowerThirdDisplayDuration:
+    """Validate display_duration_ms in templates and IPC protocol."""
+
+    @pytest.fixture(params=["default", "modern_blue", "minimal"])
+    def template_data(self, request):
+        return _load_template(request.param)
+
+    def test_display_duration_is_number(self, template_data):
+        val = template_data["style"]["display_duration_ms"]
+        assert isinstance(val, (int, float))
+
+    def test_display_duration_reasonable_range(self, template_data):
+        val = template_data["style"]["display_duration_ms"]
+        assert 1000 <= val <= 60000, "display_duration_ms should be between 1s and 60s"
+
+    def test_default_template_duration(self):
+        data = _load_template("default")
+        assert data["style"]["display_duration_ms"] == 5000
+
+    def test_modern_blue_template_duration(self):
+        data = _load_template("modern_blue")
+        assert data["style"]["display_duration_ms"] == 7000
+
+    def test_minimal_template_duration(self):
+        data = _load_template("minimal")
+        assert data["style"]["display_duration_ms"] == 4000
+
+
+class TestTalentOverlayDuration:
+    """Validate display_duration_ms in the IPC protocol."""
+
+    def test_default_duration(self):
+        from ipc.protocol import TalentOverlayMessage
+        msg = TalentOverlayMessage(talent_id="t1", name="Alice", role="Host")
+        assert msg.display_duration_ms == 5000.0
+
+    def test_custom_duration(self):
+        from ipc.protocol import TalentOverlayMessage
+        msg = TalentOverlayMessage(
+            talent_id="t1", name="Alice", role="Host",
+            display_duration_ms=8000.0,
+        )
+        assert msg.display_duration_ms == 8000.0
+
+    def test_duration_in_json(self):
+        from ipc.protocol import TalentOverlayMessage
+        msg = TalentOverlayMessage(
+            talent_id="t1", name="Alice", role="Host",
+            display_duration_ms=3000.0,
+        )
+        data = json.loads(msg.to_json())
+        assert data["display_duration_ms"] == 3000.0
+
+    def test_duration_from_json(self):
+        from ipc.protocol import TalentOverlayMessage
+        msg = TalentOverlayMessage(
+            talent_id="t1", name="Alice", role="Host",
+            display_duration_ms=7500.0,
+        )
+        restored = TalentOverlayMessage.from_json(msg.to_json())
+        assert restored.display_duration_ms == 7500.0
+
+    def test_duration_from_json_missing_uses_default(self):
+        from ipc.protocol import TalentOverlayMessage
+        raw = json.dumps({
+            "type": "talent_overlay",
+            "talent_id": "t1",
+            "name": "Bob",
+            "role": "Guest",
+        })
+        msg = TalentOverlayMessage.from_json(raw)
+        assert msg.display_duration_ms == 5000.0
