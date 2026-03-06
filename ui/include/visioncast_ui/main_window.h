@@ -11,9 +11,9 @@ class TalentManager;
 class OutputConfig;
 class MonitoringPanel;
 
-namespace visioncast_ui { class ControlRoom; }
-
 namespace visioncast_ui {
+
+class ControlRoom;
 
 /// Top-level application window for the VisionCast broadcast control room.
 class MainWindow : public QMainWindow {
