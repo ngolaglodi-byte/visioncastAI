@@ -62,11 +62,15 @@ void RecognitionPanel::updateRecognition(const RecognitionEvent& event) {
         ? event.timestamp.toString("hh:mm:ss")
         : QDateTime::currentDateTime().toString("hh:mm:ss");
 
-    QString entry = QString("[%1] %2 — %3 (%4 %)")
-        .arg(ts,
-             event.talentName.isEmpty() ? "Unknown" : event.talentName,
-             event.role.isEmpty() ? "" : event.role,
-             QString::number(event.confidence * 100.0, 'f', 1));
+    QString talent = event.talentName.isEmpty() ? "Unknown" : event.talentName;
+    QString pctStr = QString::number(event.confidence * 100.0, 'f', 1) + "%";
+
+    QString entry;
+    if (event.role.isEmpty()) {
+        entry = QString("[%1] %2 (%3)").arg(ts, talent, pctStr);
+    } else {
+        entry = QString("[%1] %2 — %3 (%4)").arg(ts, talent, event.role, pctStr);
+    }
 
     historyList_->insertItem(0, entry);
 
