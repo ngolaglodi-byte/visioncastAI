@@ -4,7 +4,7 @@
       "enabled": false,
       "lut_path": "",
       "intensity": 1.0,
-      "description": "Cinema 3D LUT colour grading (warm highlights, teal shadows, lifted blacks)"
+      "description": "Cinema 3D LUT color grading (warm highlights, teal shadows, lifted blacks)"
     },
     "sharpen": {
       "enabled": false,

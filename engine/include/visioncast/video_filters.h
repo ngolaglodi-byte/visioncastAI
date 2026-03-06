@@ -21,7 +21,7 @@ namespace visioncast {
 // LutFilter — Cinema 3D LUT color grading
 // ======================================================================
 
-/// Applies a 3D colour Look-Up Table for cinema-grade colour grading.
+/// Applies a 3D color Look-Up Table for cinema-grade color grading.
 ///
 /// An external .cube LUT file can be loaded, or a built-in cinematic grade
 /// (warm highlights, teal shadows, lifted blacks) is applied by default.
@@ -90,9 +90,9 @@ private:
 /// Reduces noise while preserving edges using a bilateral filter.
 class NoiseReductionFilter : public IVideoFilter {
 public:
-    /// @param strength    Filter diameter (pixels, 1–50).
-    /// @param sigmaColor  Colour-space sigma (1–300).
-    /// @param sigmaSpace  Spatial sigma (1–300).
+    /// @param strength    Filter diameter (pixels, 1-50).
+    /// @param sigmaColor  Color-space sigma (1-300).
+    /// @param sigmaSpace  Spatial sigma (1-300).
     explicit NoiseReductionFilter(int strength = 7,
                                   double sigmaColor = 75.0,
                                   double sigmaSpace = 75.0);

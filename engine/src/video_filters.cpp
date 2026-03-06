@@ -268,7 +268,7 @@ VideoFrame SharpenFilter::process(const VideoFrame& input) {
 
     cv::Mat src = wrapFrame(input);
 
-    // Unsharp mask: sharpened = src + strength * (src – blurred).
+    // Unsharp mask: sharpened = src + strength * (src - blurred).
     cv::Mat blurred;
     cv::GaussianBlur(src, blurred,
                      cv::Size(kernelSize_, kernelSize_), 0);
@@ -341,7 +341,7 @@ VideoFrame HdrTonemapFilter::process(const VideoFrame& input) {
 
     cv::Mat src = wrapFrame(input);
 
-    // Convert to 32-bit float normalised [0,1].
+    // Convert to 32-bit float normalized [0,1].
     cv::Mat floatImg;
     src.convertTo(floatImg, CV_32F, 1.0 / 255.0);
 
@@ -362,7 +362,7 @@ VideoFrame HdrTonemapFilter::process(const VideoFrame& input) {
     float invGamma = 1.0f / gamma_;
     cv::pow(lumMapped, invGamma, lumMapped);
 
-    // Rebuild colour channels with saturation control.
+    // Rebuild color channels with saturation control.
     // ratio = lumMapped / (lum + epsilon)
     cv::Mat ratio;
     cv::divide(lumMapped, lum + 1e-6f, ratio);

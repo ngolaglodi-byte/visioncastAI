@@ -2,6 +2,7 @@
 /// @brief VisionCast Engine entry point.
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "visioncast/capture_manager.h"
@@ -10,6 +11,7 @@
 #include "visioncast/overlay_renderer.h"
 #include "visioncast/pipeline_manager.h"
 #include "visioncast/metadata_receiver.h"
+#include "visioncast/video_filters.h"
 #include "visioncast/vision_engine.h"
 
 int main(int argc, char* argv[]) {
@@ -20,6 +22,20 @@ int main(int argc, char* argv[]) {
     visioncast::FilterChain filters;
     visioncast::OverlayRenderer overlays;
     visioncast::OutputManager output;
+
+    // --- Register global video filters (recommended order) ----
+    // Noise reduction first to clean up before colour grading.
+    filters.addFilter(std::make_unique<visioncast::NoiseReductionFilter>());
+    // Cinema LUT colour grading.
+    filters.addFilter(std::make_unique<visioncast::LutFilter>());
+    // HDR tonemapping (useful for HDR sources displayed on SDR monitors).
+    filters.addFilter(std::make_unique<visioncast::HdrTonemapFilter>());
+    // Dynamic contrast via CLAHE.
+    filters.addFilter(std::make_unique<visioncast::DynamicContrastFilter>());
+    // Sharpen last — applied to the final graded image.
+    filters.addFilter(std::make_unique<visioncast::SharpenFilter>());
+
+    std::cout << "[VisionCast Engine] Global video filters registered." << std::endl;
 
     visioncast::PipelineManager pipeline(capture, filters, overlays, output);
     pipeline.setResolution(3840, 2160);
