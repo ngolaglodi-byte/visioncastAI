@@ -1,0 +1,31 @@
+{
+  "name": "minimal",
+  "description": "Minimal lower-third with subtle fade-in",
+  "style": {
+    "background_opacity": 0.45,
+    "background_color": [30, 30, 30],
+    "text_color": [240, 240, 240],
+    "subtitle_color": [180, 180, 180],
+    "font_scale": 0.9,
+    "thickness": 1,
+    "band_height_ratio": 0.10,
+    "animation": "fade_in",
+    "animation_duration_ms": 800,
+    "exit_animation": "fade_out",
+    "exit_animation_duration_ms": 600,
+    "easing": "ease_in"
+  },
+  "layout": {
+    "title_offset_x": 30,
+    "title_offset_y": 30,
+    "subtitle_offset_x": 30,
+    "subtitle_offset_y": 60,
+    "logo_position": "bottom_right",
+    "logo_path": ""
+  },
+  "transition": {
+    "type": "fade",
+    "duration_ms": 400,
+    "easing": "linear"
+  }
+}

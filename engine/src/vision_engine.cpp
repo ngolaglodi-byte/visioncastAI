@@ -17,6 +17,8 @@
 #include <thread>
 #include <vector>
 
+#include "visioncast/gpu_compositor.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -91,6 +93,9 @@ struct VisionEngine::Impl {
     // ---- Render loop ------------------------------------------------
     std::atomic<bool>                running{false};
     VisionEngine::FrameCallback      frameCallback;
+
+    // ---- GPU Compositor ---------------------------------------------
+    GpuCompositor                    compositor;
 
     // ---- Helpers ----------------------------------------------------
 
@@ -271,6 +276,9 @@ bool VisionEngine::initialize() {
         }
     }
 
+    // 4. GPU compositor (works in both CPU and GPU modes).
+    impl_->compositor.initialize(cfg.previewWidth, cfg.previewHeight);
+
     std::cout << "[VisionEngine] Initialized ("
               << cfg.previewWidth << "x" << cfg.previewHeight
               << " @ " << cfg.targetFps << " fps)." << std::endl;
@@ -279,6 +287,7 @@ bool VisionEngine::initialize() {
 
 void VisionEngine::shutdown() {
     stop();
+    impl_->compositor.shutdown();
     shutdownGpuPipeline();
     destroyPreviewWindow();
     closeCapture();
@@ -582,6 +591,14 @@ void VisionEngine::run() {
             impl_->frameCallback(frame);
         }
 
+        // --- 2b. Advance compositor clocks ---
+        {
+            auto now = std::chrono::steady_clock::now();
+            double deltaMs = std::chrono::duration<double, std::milli>(
+                                 now - loopStart).count();
+            impl_->compositor.update(deltaMs);
+        }
+
         // --- 3. Display / Render ---
 #ifdef HAS_OPENGL
         if (impl_->gpuReady && impl_->glfwWindow) {
@@ -599,9 +616,18 @@ void VisionEngine::run() {
                              fmt, GL_UNSIGNED_BYTE, frame.data);
             }
             impl_->renderFrame(impl_->previewTexture);
+
+            // Composite overlay layers on top (GPU path).
+            if (impl_->compositor.isReady()) {
+                impl_->compositor.compositeGpu(impl_->previewTexture,
+                                               frame.width, frame.height);
+            }
         }
 #else
-        // OpenCV highgui fallback.
+        // CPU compositor + OpenCV highgui fallback.
+        if (frame.data && impl_->compositor.isReady()) {
+            impl_->compositor.composite(frame);
+        }
         if (impl_->previewOpen && !impl_->cvFrame.empty()) {
             cv::imshow(impl_->windowName, impl_->cvFrame);
             int key = cv::waitKey(1);
@@ -649,6 +675,18 @@ void VisionEngine::setResolution(int width, int height) {
 
 void VisionEngine::setFrameCallback(FrameCallback callback) {
     impl_->frameCallback = std::move(callback);
+}
+
+// =====================================================================
+// GPU Compositor Access
+// =====================================================================
+
+GpuCompositor& VisionEngine::compositor() {
+    return impl_->compositor;
+}
+
+const GpuCompositor& VisionEngine::compositor() const {
+    return impl_->compositor;
 }
 
 } // namespace visioncast

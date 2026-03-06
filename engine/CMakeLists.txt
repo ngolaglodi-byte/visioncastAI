@@ -24,6 +24,7 @@ set(ENGINE_SOURCES
     src/metadata_receiver.cpp
     src/zmq_receiver.cpp
     src/vision_engine.cpp
+    src/gpu_compositor.cpp
 )
 
 add_library(visioncast_engine_lib STATIC ${ENGINE_SOURCES})

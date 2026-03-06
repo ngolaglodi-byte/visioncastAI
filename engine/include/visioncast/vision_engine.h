@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 
+#include "visioncast/gpu_compositor.h"
 #include "visioncast_sdk/video_device.h"
 
 namespace visioncast {
@@ -163,6 +164,13 @@ public:
     /// Per-frame processing callback (invoked each frame before rendering).
     using FrameCallback = std::function<void(VideoFrame&)>;
     void setFrameCallback(FrameCallback callback);
+
+    // ---- GPU Compositor ---------------------------------------------
+
+    /// Access the built-in GPU compositing pipeline (layers, animations,
+    /// transitions, lower thirds, dynamic templates).
+    GpuCompositor& compositor();
+    const GpuCompositor& compositor() const;
 
 private:
     /// Opaque implementation (PIMPL) — hides OpenCV / OpenGL / GLFW types.
