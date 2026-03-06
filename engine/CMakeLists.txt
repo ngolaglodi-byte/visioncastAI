@@ -67,3 +67,8 @@ endif()
 # --- Engine Executable ---
 add_executable(visioncast_engine src/main.cpp)
 target_link_libraries(visioncast_engine PRIVATE visioncast_engine_lib)
+
+# --- Install Rules ---
+install(TARGETS visioncast_engine RUNTIME DESTINATION bin)
+install(TARGETS visioncast_engine_lib ARCHIVE DESTINATION lib)
+install(DIRECTORY include/visioncast DESTINATION include)

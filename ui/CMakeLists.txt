@@ -47,3 +47,6 @@ else()
         visioncast_engine_lib
     )
 endif()
+
+# --- Install Rules ---
+install(TARGETS visioncast_ui RUNTIME DESTINATION bin)

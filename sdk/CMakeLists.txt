@@ -66,3 +66,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rtmp/include")
         ${CMAKE_CURRENT_SOURCE_DIR}/rtmp/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_RTMP=1)
 endif()
+
+# --- Install Rules ---
+install(TARGETS visioncast_sdk ARCHIVE DESTINATION lib)
+install(DIRECTORY include/visioncast_sdk DESTINATION include)
