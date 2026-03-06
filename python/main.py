@@ -14,6 +14,9 @@ with open(TALENTS_PATH, "r", encoding="utf-8") as f:
     TALENTS = json.load(f)["talents"]
 
 # Configurable lower-third display duration in seconds (default: 5s).
+# This applies to the CPU-based rendering in main.py.
+# Template-level durations (display_duration_ms in JSON) are used by
+# the C++ GpuCompositor engine instead.
 LOWER_THIRD_DURATION_SEC = float(os.environ.get("LOWER_THIRD_DURATION_SEC", "5.0"))
 
 # Charger les images talents + encodings
@@ -79,6 +82,9 @@ while True:
             elapsed = now - _lower_third_timers[idx]
             if elapsed < LOWER_THIRD_DURATION_SEC:
                 frame = draw_lower_third(frame, t["name"], t["role"])
+            else:
+                # Timer expired — remove entry so it can re-trigger later
+                del _lower_third_timers[idx]
 
     cv2.imshow("VisionCast AI - MVP", frame)
 
