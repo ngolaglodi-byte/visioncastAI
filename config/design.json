@@ -1,0 +1,27 @@
+{
+  "lower_thirds": {
+    "default_title": "",
+    "default_subtitle": "",
+    "style": "default"
+  },
+  "templates": {
+    "available": ["default", "modern_blue", "minimal"],
+    "selected": "default"
+  },
+  "themes": {
+    "available": ["Dark", "Light", "Broadcast", "Custom"],
+    "selected": "Dark"
+  },
+  "colors": {
+    "primary": "#000000",
+    "accent": "#FFFFFF"
+  },
+  "logo": {
+    "path": "",
+    "position": "bottom_right"
+  },
+  "transitions": {
+    "type": "fade",
+    "duration_ms": 500
+  }
+}

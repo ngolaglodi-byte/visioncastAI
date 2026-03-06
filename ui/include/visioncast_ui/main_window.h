@@ -14,6 +14,7 @@ class MonitoringPanel;
 namespace visioncast_ui {
 
 class ControlRoom;
+class DesignPanel;
 
 /// Top-level application window for the VisionCast broadcast control room.
 class MainWindow : public QMainWindow {
@@ -38,6 +39,7 @@ private:
     OutputConfig* outputConfig_ = nullptr;
     MonitoringPanel* monitoringPanel_ = nullptr;
     ControlRoom* controlRoom_ = nullptr;
+    DesignPanel* designPanel_ = nullptr;
 
     void setupMenuBar();
     void setupDockWidgets();

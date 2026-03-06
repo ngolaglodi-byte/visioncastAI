@@ -14,6 +14,7 @@
 #include "visioncast_ui/preview_panel.h"
 #include "visioncast_ui/talent_manager.h"
 #include "visioncast_ui/control_room.h"
+#include "visioncast_ui/design_panel.h"
 
 namespace visioncast_ui {
 
@@ -66,6 +67,10 @@ void MainWindow::setupDockWidgets() {
     // Dock: Control Room
     controlRoom_ = new ControlRoom(this);
     addDockWidget(Qt::LeftDockWidgetArea, createDock("Control Room", controlRoom_));
+
+    // Dock: Design & Overlays
+    designPanel_ = new DesignPanel(this);
+    addDockWidget(Qt::RightDockWidgetArea, createDock("Design & Overlays", designPanel_));
 
     connect(controlRoom_, &ControlRoom::sourceSelected,
             this, &MainWindow::onSourceChanged);
