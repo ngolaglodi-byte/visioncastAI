@@ -43,7 +43,7 @@ class TalentDB:
         self.encodings = []
 
         for talent in data.get("talents", []):
-            image_path = os.path.join(self.project_root, talent["image"])
+            image_path = os.path.join(self.project_root, talent["photo"])
             if not os.path.exists(image_path):
                 print(f"[TalentDB] Warning: image not found: {image_path}")
                 continue

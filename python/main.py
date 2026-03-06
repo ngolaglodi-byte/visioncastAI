@@ -17,7 +17,7 @@ KNOWN_ENCODINGS = []
 KNOWN_METADATA = []
 
 for t in TALENTS:
-    image_path = os.path.join(PROJECT_ROOT, t["image"])
+    image_path = os.path.join(PROJECT_ROOT, t["photo"])
     img = face_recognition.load_image_file(image_path)
     enc = face_recognition.face_encodings(img)
     if len(enc) > 0:
