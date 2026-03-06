@@ -14,6 +14,8 @@ set(SDK_SOURCES
     src/ndi_device.cpp
     src/ndi_input.cpp
     src/ndi_output.cpp
+    src/srt_output.cpp
+    src/rtmp_output.cpp
 )
 
 add_library(visioncast_sdk STATIC ${SDK_SOURCES})
@@ -49,4 +51,18 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ndi/include")
     target_include_directories(visioncast_sdk PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/ndi/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_NDI=1)
+endif()
+
+# Optional: SRT (libsrt)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/srt/include")
+    target_include_directories(visioncast_sdk PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/srt/include)
+    target_compile_definitions(visioncast_sdk PUBLIC HAS_SRT=1)
+endif()
+
+# Optional: RTMP (librtmp / FFmpeg)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rtmp/include")
+    target_include_directories(visioncast_sdk PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/rtmp/include)
+    target_compile_definitions(visioncast_sdk PUBLIC HAS_RTMP=1)
 endif()

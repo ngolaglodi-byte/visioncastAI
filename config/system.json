@@ -24,6 +24,16 @@
       "enabled": true,
       "source_name": "VisionCast Program"
     },
+    "srt": {
+      "enabled": false,
+      "destination": "srt://localhost:9000",
+      "latency_ms": 120
+    },
+    "rtmp": {
+      "enabled": false,
+      "server_url": "rtmp://live.example.com/app",
+      "stream_key": ""
+    },
     "recording": {
       "enabled": false,
       "path": "/recordings/",

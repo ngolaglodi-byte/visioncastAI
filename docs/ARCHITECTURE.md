@@ -11,7 +11,7 @@ VisionCast-AI is a professional 4K broadcast production system powered by AI. It
 | **AI Face Recognition** | Real-time detection and identification of on-screen talents |
 | **4K Video Engine** | GPU-accelerated compositing, overlays, filters, color correction |
 | **Broadcast Control Room** | Qt-based UI for live mixing, monitoring, and configuration |
-| **Professional I/O** | DeckLink, AJA, Magewell capture/playout + NDI network streaming |
+| **Professional I/O** | DeckLink, AJA, Magewell capture/playout + NDI, SRT, RTMP streaming |
 
 ### High-Level Architecture
 
@@ -40,6 +40,9 @@ VisionCast-AI is a professional 4K broadcast production system powered by AI. It
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
 │  │ DeckLink │  │   AJA    │  │ Magewell │  │   NDI    │             │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘             │
+│  ┌──────────┐  ┌──────────┐                                         │
+│  │   SRT    │  │   RTMP   │                                         │
+│  └──────────┘  └──────────┘                                         │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -122,7 +125,9 @@ visioncast-ai/
 │   │       ├── magewell_input.h   # Magewell capture
 │   │       ├── ndi_device.h       # NDI network device wrapper
 │   │       ├── ndi_input.h        # NDI receive
-│   │       └── ndi_output.h       # NDI send
+│   │       ├── ndi_output.h       # NDI send
+│   │       ├── srt_output.h       # SRT streaming output
+│   │       └── rtmp_output.h      # RTMP streaming output
 │   └── src/
 │       ├── video_device.cpp
 │       ├── decklink_device.cpp
@@ -135,7 +140,9 @@ visioncast-ai/
 │       ├── magewell_input.cpp
 │       ├── ndi_device.cpp
 │       ├── ndi_input.cpp
-│       └── ndi_output.cpp
+│       ├── ndi_output.cpp
+│       ├── srt_output.cpp
+│       └── rtmp_output.cpp
 │
 ├── overlays/                      # Overlay Templates & Assets
 │   ├── README.md
@@ -423,7 +430,7 @@ public:
 
 #### `OutputManager`
 
-Routes processed frames to broadcast outputs (SDI, NDI, file recording).
+Routes processed frames to broadcast outputs (SDI, NDI, SRT, RTMP, file recording).
 
 ```cpp
 class OutputManager {
@@ -982,6 +989,32 @@ public:
 };
 ```
 
+#### SRTOutput (`srt_output.h`)
+
+```cpp
+class SRTOutput : public IVideoDevice {
+public:
+    void setDestination(const std::string& url);
+    std::string destination() const;
+    void setLatency(int ms);
+    int latency() const;
+    bool isOutputActive() const;
+};
+```
+
+#### RTMPOutput (`rtmp_output.h`)
+
+```cpp
+class RTMPOutput : public IVideoDevice {
+public:
+    void setServerUrl(const std::string& url);
+    std::string serverUrl() const;
+    void setStreamKey(const std::string& key);
+    std::string streamKey() const;
+    bool isOutputActive() const;
+};
+```
+
 ---
 
 ## 7. Data Flow & Video Pipeline
@@ -1010,7 +1043,7 @@ public:
 4. **Filter Chain**: Apply color correction, LUTs, sharpening, denoising sequentially
 5. **Overlay Compositing**: Render lower-thirds, logos, tickers based on AI metadata
 6. **Output Encoding**: Convert to output format (V210 for SDI, H.264/H.265 for recording)
-7. **Playout**: Send to SDK device for broadcast output + NDI for monitoring
+7. **Playout**: Send to SDK device for broadcast output + NDI/SRT/RTMP for streaming
 
 ### 7.3 Threading Model
 
@@ -1032,7 +1065,7 @@ Thread 3: Pipeline Thread (main processing)
 
 Thread 4: Output Thread
   └─ Takes processed frames from output buffer
-  └─ Sends to all active outputs (SDI, NDI, recording)
+  └─ Sends to all active outputs (SDI, NDI, SRT, RTMP, recording)
 
 Thread 5: UI Thread (Qt event loop)
   └─ Handles user interaction

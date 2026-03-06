@@ -36,6 +36,8 @@ BROADCAST_CLASSES = {
     "MagewellInput": ("magewell_input.h", "magewell_input.cpp", "CAPTURE"),
     "NDIInput": ("ndi_input.h", "ndi_input.cpp", "CAPTURE"),
     "NDIOutput": ("ndi_output.h", "ndi_output.cpp", "PLAYOUT"),
+    "SRTOutput": ("srt_output.h", "srt_output.cpp", "PLAYOUT"),
+    "RTMPOutput": ("rtmp_output.h", "rtmp_output.cpp", "PLAYOUT"),
 }
 
 
@@ -276,3 +278,49 @@ class TestNDISpecific:
         text = _read(os.path.join(SDK_INCLUDE, "ndi_output.h"))
         assert "setSourceName(" in text
         assert "sourceName()" in text
+
+
+# =====================================================================
+# SRT-specific tests
+# =====================================================================
+
+class TestSRTSpecific:
+    """Validate SRT-specific features."""
+
+    def test_srt_output_has_destination(self):
+        text = _read(os.path.join(SDK_INCLUDE, "srt_output.h"))
+        assert "setDestination(" in text
+        assert "destination()" in text
+
+    def test_srt_output_has_latency(self):
+        text = _read(os.path.join(SDK_INCLUDE, "srt_output.h"))
+        assert "setLatency(" in text
+        assert "latency()" in text
+
+    def test_srt_output_supports_1080p_and_4k(self):
+        text = _read(os.path.join(SDK_SRC, "srt_output.cpp"))
+        assert "1920" in text and "1080" in text, "SRT missing 1080p support"
+        assert "3840" in text and "2160" in text, "SRT missing 4K support"
+
+
+# =====================================================================
+# RTMP-specific tests
+# =====================================================================
+
+class TestRTMPSpecific:
+    """Validate RTMP-specific features."""
+
+    def test_rtmp_output_has_server_url(self):
+        text = _read(os.path.join(SDK_INCLUDE, "rtmp_output.h"))
+        assert "setServerUrl(" in text
+        assert "serverUrl()" in text
+
+    def test_rtmp_output_has_stream_key(self):
+        text = _read(os.path.join(SDK_INCLUDE, "rtmp_output.h"))
+        assert "setStreamKey(" in text
+        assert "streamKey()" in text
+
+    def test_rtmp_output_supports_1080p_and_4k(self):
+        text = _read(os.path.join(SDK_SRC, "rtmp_output.cpp"))
+        assert "1920" in text and "1080" in text, "RTMP missing 1080p support"
+        assert "3840" in text and "2160" in text, "RTMP missing 4K support"
