@@ -14,6 +14,7 @@
 #include <chrono>
 #include <iostream>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 #include <opencv2/core.hpp>
@@ -94,19 +95,31 @@ struct VisionEngine::Impl {
     // ---- Helpers ----------------------------------------------------
 
     /// Fill a VideoFrame struct from the internal cv::Mat.
+    /// Converts BGR (3-channel) frames to BGRA (4-channel) so the pixel
+    /// format always matches PixelFormat::BGRA8 for GPU upload.
     void matToVideoFrame(const cv::Mat& mat, VideoFrame& out) {
         if (mat.empty()) {
             out = VideoFrame{};
             return;
         }
-        const size_t bytes = static_cast<size_t>(mat.total() * mat.elemSize());
+
+        cv::Mat bgra;
+        if (mat.channels() == 3) {
+            cv::cvtColor(mat, bgra, cv::COLOR_BGR2BGRA);
+        } else if (mat.channels() == 4) {
+            bgra = mat; // Already BGRA.
+        } else {
+            cv::cvtColor(mat, bgra, cv::COLOR_GRAY2BGRA);
+        }
+
+        const size_t bytes = static_cast<size_t>(bgra.total() * bgra.elemSize());
         frameBuffer.resize(bytes);
-        std::memcpy(frameBuffer.data(), mat.data, bytes);
+        std::memcpy(frameBuffer.data(), bgra.data, bytes);
 
         out.data        = frameBuffer.data();
-        out.width       = mat.cols;
-        out.height      = mat.rows;
-        out.stride      = static_cast<int>(mat.step[0]);
+        out.width       = bgra.cols;
+        out.height      = bgra.rows;
+        out.stride      = static_cast<int>(bgra.step[0]);
         out.format      = PixelFormat::BGRA8;
         out.timestampUs = std::chrono::duration_cast<std::chrono::microseconds>(
                               std::chrono::steady_clock::now().time_since_epoch())
