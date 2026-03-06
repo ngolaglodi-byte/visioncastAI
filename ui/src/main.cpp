@@ -13,6 +13,7 @@ int main(int argc, char* argv[]) {
     visioncast_ui::MainWindow window;
     window.setWindowTitle("VisionCast-AI — Broadcast Control Room");
     window.resize(1600, 900);
+    window.loadTheme("themes/dark.qss");
     window.show();
 
     return app.exec();

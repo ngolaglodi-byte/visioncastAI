@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisionCast Control Room — Design Mockup</title>
+<style>
+/* ================================================================
+   VisionCast Control Room — Professional Broadcast UI Mockup
+   Inspired by vMix, TriCaster, Ross XPression, VizRT
+   ================================================================ */
+
+:root {
+  /* Dark theme (default) */
+  --bg-primary:    #0d1117;
+  --bg-secondary:  #161b22;
+  --bg-tertiary:   #1c2128;
+  --bg-panel:      #21262d;
+  --bg-input:      #0d1117;
+  --bg-hover:      #30363d;
+  --bg-active:     #1f6feb33;
+  --border:        #30363d;
+  --border-light:  #484f58;
+  --text-primary:  #e6edf3;
+  --text-secondary:#8b949e;
+  --text-muted:    #6e7681;
+  --accent:        #1f6feb;
+  --accent-hover:  #388bfd;
+  --accent-glow:   #1f6feb40;
+  --success:       #2ea043;
+  --success-bg:    #2ea04320;
+  --warning:       #d29922;
+  --warning-bg:    #d2992220;
+  --danger:        #f85149;
+  --danger-bg:     #f8514920;
+  --info:          #58a6ff;
+  --live-red:      #ff3b3b;
+  --live-glow:     #ff3b3b60;
+  --preview-green: #2ea043;
+  --sidebar-width: 240px;
+  --topbar-height: 48px;
+  --radius:        6px;
+  --radius-lg:     10px;
+  --shadow:        0 2px 8px rgba(0,0,0,.4);
+  --shadow-lg:     0 4px 24px rgba(0,0,0,.6);
+  --font:          'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:     'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  --transition:    all .2s ease;
+}
+
+.light-theme {
+  --bg-primary:    #ffffff;
+  --bg-secondary:  #f6f8fa;
+  --bg-tertiary:   #f0f2f5;
+  --bg-panel:      #ffffff;
+  --bg-input:      #f6f8fa;
+  --bg-hover:      #e8eaed;
+  --bg-active:     #1f6feb15;
+  --border:        #d0d7de;
+  --border-light:  #d8dee4;
+  --text-primary:  #1f2328;
+  --text-secondary:#656d76;
+  --text-muted:    #8b949e;
+  --accent:        #0969da;
+  --accent-hover:  #0550ae;
+  --accent-glow:   #0969da30;
+  --success:       #1a7f37;
+  --success-bg:    #1a7f3715;
+  --warning:       #9a6700;
+  --warning-bg:    #9a670015;
+  --danger:        #cf222e;
+  --danger-bg:     #cf222e15;
+  --info:          #0969da;
+  --shadow:        0 1px 4px rgba(0,0,0,.1);
+  --shadow-lg:     0 4px 16px rgba(0,0,0,.12);
+}
+
+/* ================================================================
+   RESET & BASE
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  transition: background .3s, color .3s;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ================================================================
+   LAYOUT — Top Bar
+   ================================================================ */
+.topbar {
+  height: var(--topbar-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  z-index: 100;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.topbar-brand .logo {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.topbar-nav button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font);
+  transition: var(--transition);
+}
+
+.topbar-nav button:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-nav button.active { background: var(--bg-active); color: var(--accent); }
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn:hover { background: var(--bg-hover); border-color: var(--border-light); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover { opacity: .9; }
+
+.btn-success {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.live-indicator.on-air {
+  background: var(--live-red);
+  color: #fff;
+  box-shadow: 0 0 12px var(--live-glow);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.live-indicator.preview {
+  background: var(--preview-green);
+  color: #fff;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--live-glow); }
+  50% { box-shadow: 0 0 20px var(--live-glow); }
+}
+
+.theme-toggle {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+}
+
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: var(--transition);
+}
+
+.light-theme .theme-toggle::after {
+  left: 22px;
+}
+
+/* ================================================================
+   LAYOUT — Main container
+   ================================================================ */
+.app-container {
+  display: flex;
+  height: calc(100vh - var(--topbar-height));
+}
+
+/* ================================================================
+   SIDEBAR
+   ================================================================ */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sidebar-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sidebar-item.active { background: var(--bg-active); color: var(--accent); }
+
+.sidebar-item .icon {
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.sidebar-item .badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ================================================================
+   MAIN CONTENT AREA
+   ================================================================ */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* ================================================================
+   RIGHT PANEL
+   ================================================================ */
+.right-panel {
+  width: 360px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+/* ================================================================
+   PANEL COMPONENT
+   ================================================================ */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.panel:hover { border-color: var(--border-light); }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.panel-title .dot.warning { background: var(--warning); }
+.panel-title .dot.danger { background: var(--danger); }
+
+.panel-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-actions button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.panel-actions button:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.panel-body {
+  padding: 14px;
+}
+
+/* ================================================================
+   PREVIEW MONITORS
+   ================================================================ */
+.preview-container {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.monitor {
+  background: #000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  position: relative;
+}
+
+.monitor.program { border-color: var(--live-red); box-shadow: 0 0 16px var(--live-glow); }
+.monitor.preview { border-color: var(--preview-green); }
+
+.monitor-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #fff;
+  z-index: 2;
+}
+
+.monitor.program .monitor-label { background: var(--live-red); }
+.monitor.preview .monitor-label { background: var(--preview-green); }
+
+.monitor-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 12px;
+  background: linear-gradient(transparent, rgba(0,0,0,.85));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 2;
+}
+
+.monitor-info .source-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.monitor-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  color: rgba(255,255,255,.75);
+}
+
+.monitor-stats span { display: flex; align-items: center; gap: 3px; }
+
+.monitor-screen {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #111, #1a1a2e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.monitor-screen .scan-line {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.05) 2px,
+    rgba(0,0,0,.05) 4px
+  );
+  pointer-events: none;
+}
+
+.lower-third-demo {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+.lower-third-bar {
+  background: linear-gradient(90deg, var(--accent), #7c3aed);
+  padding: 8px 20px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 70%;
+  clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%);
+}
+
+.lower-third-bar .lt-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+.lower-third-bar .lt-role {
+  font-size: 10px;
+  opacity: .85;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* ================================================================
+   2. SOURCES VIDEO PANEL
+   ================================================================ */
+.source-selector {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.source-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+}
+
+.source-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.source-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 8px;
+  background: var(--bg-input);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  margin-top: 2px;
+}
+
+/* ================================================================
+   3. TALENTS & DETAILS PANEL
+   ================================================================ */
+.talent-card {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.talent-card:hover { border-color: var(--accent); background: var(--bg-active); }
+.talent-card.selected { border-color: var(--accent); background: var(--bg-active); }
+
+.talent-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.talent-info { flex: 1; min-width: 0; }
+
+.talent-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.talent-role {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.talent-org {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.talent-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.talent-tag {
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.talent-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+}
+
+.form-group {
+  margin-bottom: 10px;
+}
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font);
+  transition: var(--transition);
+  outline: none;
+}
+
+.form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+.form-select {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font);
+  transition: var(--transition);
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+/* ================================================================
+   4. DESIGN & OVERLAYS PANEL
+   ================================================================ */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.template-card {
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.template-card:hover { border-color: var(--accent); }
+.template-card.active { border-color: var(--accent); background: var(--bg-active); }
+
+.template-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.template-preview .mini-lower-third {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  height: 12px;
+  width: 60%;
+  border-radius: 0 2px 2px 0;
+}
+
+.template-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.theme-swatch {
+  width: 48px;
+  height: 36px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 2px solid var(--border);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-swatch:hover { border-color: var(--accent); transform: scale(1.05); }
+.theme-swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+.theme-swatch .swatch-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,.7);
+  color: #fff;
+  font-size: 7px;
+  text-align: center;
+  padding: 1px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.color-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.color-preview {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.transition-preview {
+  width: 100%;
+  height: 40px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  gap: 8px;
+}
+
+.transition-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: slideWidth 2s ease-in-out infinite;
+}
+
+@keyframes slideWidth {
+  0%, 100% { width: 10px; }
+  50% { width: 60px; }
+}
+
+/* ================================================================
+   5. VIDEO FILTERS PANEL
+   ================================================================ */
+.filter-list { display: flex; flex-direction: column; gap: 10px; }
+
+.filter-item {
+  padding: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.filter-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.toggle-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.toggle-switch.on { background: var(--accent); }
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: var(--transition);
+}
+
+.toggle-switch.on::after { left: 18px; }
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-track {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  position: relative;
+}
+
+.slider-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+
+.slider-value {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.filter-preset-chips {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.preset-chip {
+  padding: 3px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.preset-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.preset-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ================================================================
+   6. DISPLAY DURATION PANEL
+   ================================================================ */
+.duration-control {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.duration-display {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.duration-timer {
+  font-size: 36px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.duration-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.mode-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font);
+}
+
+.mode-btn.active { background: var(--accent); color: #fff; }
+
+.timer-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.timer-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #a855f7);
+  border-radius: 3px;
+  animation: timerAnim 5s linear infinite;
+}
+
+@keyframes timerAnim {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* ================================================================
+   7. AI & RECOGNITION PANEL
+   ================================================================ */
+.recognition-current {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+
+.face-detection-box {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius);
+  border: 2px solid var(--success);
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.face-detection-box .face-icon {
+  font-size: 28px;
+  opacity: .6;
+}
+
+.face-detection-box .detect-corners {
+  position: absolute;
+  inset: -2px;
+}
+
+.detect-corners .corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--success);
+  border-style: solid;
+}
+
+.corner.tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.corner.tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+.recognition-details { flex: 1; }
+
+.recognition-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.recognition-row .label { color: var(--text-muted); }
+.recognition-row .value { color: var(--text-primary); font-weight: 600; }
+
+.confidence-bar-container {
+  margin-top: 6px;
+}
+
+.confidence-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .5s ease;
+}
+
+.confidence-fill.high { background: var(--success); }
+.confidence-fill.medium { background: var(--warning); }
+.confidence-fill.low { background: var(--danger); }
+
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.history-item:last-child { border-bottom: none; }
+
+.history-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.history-name { color: var(--text-primary); font-weight: 600; }
+
+.history-confidence {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ================================================================
+   8. LOGS & MONITORING PANEL
+   ================================================================ */
+.log-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.log-tab {
+  padding: 6px 12px;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition);
+  font-family: var(--font);
+}
+
+.log-tab:hover { color: var(--text-primary); }
+.log-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.log-output {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.log-line { display: flex; gap: 6px; }
+
+.log-time { color: var(--text-muted); flex-shrink: 0; }
+.log-source { color: var(--accent); font-weight: 600; flex-shrink: 0; min-width: 50px; }
+.log-msg { color: var(--text-primary); word-break: break-word; }
+.log-level-info { color: var(--info); }
+.log-level-warn { color: var(--warning); }
+.log-level-error { color: var(--danger); }
+
+.metrics-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metrics-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 36px;
+  font-weight: 600;
+}
+
+.metrics-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metrics-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .5s ease;
+}
+
+.metrics-fill.cpu { background: linear-gradient(90deg, var(--success), var(--warning)); }
+.metrics-fill.gpu { background: linear-gradient(90deg, var(--accent), #a855f7); }
+
+.metrics-value {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ================================================================
+   TABS (generic)
+   ================================================================ */
+.tab-row {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin: -14px -14px 12px;
+  padding: 0 14px;
+}
+
+.tab-btn {
+  padding: 8px 14px;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition);
+  font-family: var(--font);
+  font-weight: 500;
+}
+
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ================================================================
+   RESPONSIVE NOTE
+   ================================================================ */
+@media (max-width: 1200px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .preview-container { grid-template-columns: 1fr; }
+  .right-panel { width: 300px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="logo">V</div>
+    <span>VisionCast</span>
+  </div>
+
+  <div class="topbar-nav">
+    <button class="active">Control Room</button>
+    <button>Multiview</button>
+    <button>Replay</button>
+    <button>Graphics</button>
+    <button>Audio</button>
+  </div>
+
+  <div class="topbar-actions">
+    <span class="live-indicator preview">PVW</span>
+    <span class="live-indicator on-air">ON AIR</span>
+    <button class="btn btn-danger" style="font-size:11px">⬛ Stop</button>
+    <div class="theme-toggle" onclick="document.body.classList.toggle('light-theme')" title="Toggle Light/Dark Theme"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP CONTAINER
+     ============================================================ -->
+<div class="app-container">
+
+  <!-- ============================================================
+       SIDEBAR
+       ============================================================ -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Panneaux</div>
+      <div class="sidebar-item active">
+        <span class="icon">📹</span> Sources vidéo
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">👤</span> Talents &amp; Détails
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🎨</span> Design &amp; Overlays
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🎬</span> Filtres vidéo
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">⏱️</span> Durée d'affichage
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🤖</span> IA &amp; Reconnaissance
+        <span class="badge">3</span>
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">📊</span> Logs &amp; Monitoring
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Sources rapides</div>
+      <div class="sidebar-item">
+        <span class="icon">🔴</span> DeckLink 8K Pro
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🟢</span> AJA Corvid 88
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🔵</span> Magewell Pro 4K
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🟡</span> NDI — Studio 1
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-item">
+        <span class="icon">⚙️</span> Configuration
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">❓</span> Aide
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+  <div class="main-content">
+    <div class="content-grid">
+
+      <!-- ========================================================
+           PREVIEW MONITORS (1. Layout — Zone Centrale)
+           ======================================================== -->
+      <div class="preview-container">
+        <!-- Source régie (Preview) -->
+        <div class="monitor preview">
+          <span class="monitor-label">PREVIEW</span>
+          <div class="monitor-screen">
+            <div class="scan-line"></div>
+            <span style="color:rgba(255,255,255,.3); font-size:13px">Source régie — DeckLink 8K Pro</span>
+          </div>
+          <div class="monitor-info">
+            <span class="source-name">DeckLink 8K Pro</span>
+            <div class="monitor-stats">
+              <span>1920×1080</span>
+              <span>59.94 fps</span>
+              <span>12 ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Program (ON AIR) -->
+        <div class="monitor program">
+          <span class="monitor-label">PROGRAM</span>
+          <div class="monitor-screen">
+            <div class="scan-line"></div>
+            <div class="lower-third-demo">
+              <div class="lower-third-bar">
+                <span class="lt-name">Marie Dupont</span>
+                <span class="lt-role">Présentatrice — France24</span>
+              </div>
+            </div>
+          </div>
+          <div class="monitor-info">
+            <span class="source-name">VisionCast Output</span>
+            <div class="monitor-stats">
+              <span>1920×1080</span>
+              <span>59.94 fps</span>
+              <span>8 ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           2. SOURCES VIDÉO PANEL
+           ======================================================== -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="dot"></span> Sources Vidéo</span>
+          <div class="panel-actions">
+            <button title="Refresh">⟳</button>
+            <button title="Settings">⚙</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label class="form-label">Source active</label>
+            <div class="source-selector">
+              <span class="source-chip active">DeckLink 8K Pro</span>
+              <span class="source-chip">AJA Corvid 88</span>
+              <span class="source-chip">Magewell Pro 4K</span>
+              <span class="source-chip">NDI — Studio 1</span>
+            </div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-item">
+              <div class="stat-value">1080p</div>
+              <div class="stat-label">Résolution</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">59.94</div>
+              <div class="stat-label">FPS</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">12ms</div>
+              <div class="stat-label">Latence</div>
+            </div>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:6px">
+            <button class="btn btn-primary" style="flex:1">▶ Prendre en PVW</button>
+            <button class="btn btn-danger" style="flex:1">🔴 Envoyer en PGM</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           3. TALENTS & DÉTAILS PANEL
+           ======================================================== -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="dot"></span> Talents &amp; Détails</span>
+          <div class="panel-actions">
+            <button title="Add">+</button>
+            <button title="Search">🔍</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <!-- Talent card -->
+          <div class="talent-card selected">
+            <div class="talent-photo">MD</div>
+            <div class="talent-info">
+              <div class="talent-name">Marie Dupont</div>
+              <div class="talent-role">Présentatrice</div>
+              <div class="talent-org">France24</div>
+              <div class="talent-meta">
+                <span class="talent-tag">modern_blue</span>
+                <span class="talent-tag">fade_in</span>
+                <span class="talent-color-dot" style="background:#1f6feb"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="talent-card">
+            <div class="talent-photo" style="background:linear-gradient(135deg,#d29922,#f85149)">JM</div>
+            <div class="talent-info">
+              <div class="talent-name">Jean Martin</div>
+              <div class="talent-role">Correspondant</div>
+              <div class="talent-org">Reuters</div>
+              <div class="talent-meta">
+                <span class="talent-tag">default</span>
+                <span class="talent-tag">slide_left</span>
+                <span class="talent-color-dot" style="background:#d29922"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail form (expanded) -->
+          <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border)">
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input class="form-input" value="Marie Dupont" readonly>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <div class="form-group">
+                <label class="form-label">Rôle</label>
+                <input class="form-input" value="Présentatrice" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Organisation</label>
+                <input class="form-input" value="France24" readonly>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <div class="form-group">
+                <label class="form-label">Overlay</label>
+                <select class="form-select">
+                  <option>modern_blue</option>
+                  <option>default</option>
+                  <option>minimal</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Animation</label>
+                <select class="form-select">
+                  <option>fade_in</option>
+                  <option>slide_left</option>
+                  <option>slide_up</option>
+                  <option>scale_in</option>
+                </select>
+              </div>
+            </div>
+            <div class="color-row">
+              <label class="form-label" style="margin-bottom:0; min-width:70px">Couleur</label>
+              <div class="color-preview" style="background:#1f6feb"></div>
+              <input class="form-input" value="#1F6FEB" style="flex:1" readonly>
+            </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:8px">👁 Prévisualiser</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           4. DESIGN & OVERLAYS PANEL
+           ======================================================== -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="dot"></span> Design &amp; Overlays</span>
+          <div class="panel-actions">
+            <button title="Import">📥</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="tab-row">
+            <button class="tab-btn active">Templates</button>
+            <button class="tab-btn">Thèmes</button>
+            <button class="tab-btn">Couleurs</button>
+            <button class="tab-btn">Logos</button>
+            <button class="tab-btn">Transitions</button>
+          </div>
+
+          <!-- Templates sub-tab -->
+          <div class="template-grid">
+            <div class="template-card">
+              <div class="template-preview">
+                <div class="mini-lower-third" style="background:linear-gradient(90deg,#fff,transparent)"></div>
+              </div>
+              <div class="template-name">Default</div>
+            </div>
+            <div class="template-card active">
+              <div class="template-preview">
+                <div class="mini-lower-third" style="background:linear-gradient(90deg,#1f6feb,#7c3aed)"></div>
+              </div>
+              <div class="template-name">Modern Blue</div>
+            </div>
+            <div class="template-card">
+              <div class="template-preview">
+                <div class="mini-lower-third" style="background:linear-gradient(90deg,#333,transparent); height:8px"></div>
+              </div>
+              <div class="template-name">Minimal</div>
+            </div>
+            <div class="template-card">
+              <div class="template-preview">
+                <div class="mini-lower-third" style="background:linear-gradient(90deg,#f85149,#d29922)"></div>
+              </div>
+              <div class="template-name">Breaking News</div>
+            </div>
+          </div>
+
+          <!-- Theme swatches -->
+          <div style="margin-top:12px">
+            <label class="form-label">Thèmes Broadcast</label>
+            <div class="theme-swatches">
+              <div class="theme-swatch active" style="background:#f85149">
+                <span class="swatch-name">Breaking</span>
+              </div>
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#1f6feb,#0d1117)">
+                <span class="swatch-name">News</span>
+              </div>
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#2ea043,#0d1117)">
+                <span class="swatch-name">Sport</span>
+              </div>
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#7c3aed,#0d1117)">
+                <span class="swatch-name">Politique</span>
+              </div>
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#d29922,#0d1117)">
+                <span class="swatch-name">Économie</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transitions -->
+          <div style="margin-top:12px">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <div class="form-group">
+                <label class="form-label">Animation IN</label>
+                <select class="form-select">
+                  <option>fade_in</option>
+                  <option>slide_left</option>
+                  <option>slide_up</option>
+                  <option>scale_in</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Animation OUT</label>
+                <select class="form-select">
+                  <option>fade_out</option>
+                  <option>slide_right</option>
+                  <option>slide_down</option>
+                  <option>scale_out</option>
+                </select>
+              </div>
+            </div>
+            <div class="transition-preview">
+              <span>Transition:</span>
+              <div class="transition-bar"></div>
+              <span>500ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           5. FILTRES VIDÉO PANEL
+           ======================================================== -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="dot"></span> Filtres Vidéo</span>
+          <div class="panel-actions">
+            <button title="Reset">↺</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="filter-list">
+            <!-- LUTs -->
+            <div class="filter-item">
+              <div class="filter-header">
+                <span class="filter-name">🎬 LUTs Cinéma</span>
+                <div class="toggle-switch on"></div>
+              </div>
+              <div class="filter-preset-chips">
+                <span class="preset-chip active">Cinematic Warm</span>
+                <span class="preset-chip">Teal &amp; Orange</span>
+                <span class="preset-chip">Film Log</span>
+                <span class="preset-chip">Broadcast Rec.709</span>
+              </div>
+              <div class="slider-row" style="margin-top:8px">
+                <span class="form-label" style="min-width:60px; margin-bottom:0">Intensité</span>
+                <div class="slider-track">
+                  <div class="slider-fill" style="width:75%"></div>
+                  <div class="slider-thumb" style="left:75%"></div>
+                </div>
+                <span class="slider-value">75%</span>
+              </div>
+            </div>
+
+            <!-- Sharpen -->
+            <div class="filter-item">
+              <div class="filter-header">
+                <span class="filter-name">🔍 Sharpen</span>
+                <div class="toggle-switch on"></div>
+              </div>
+              <div class="slider-row">
+                <span class="form-label" style="min-width:60px; margin-bottom:0">Force</span>
+                <div class="slider-track">
+                  <div class="slider-fill" style="width:40%"></div>
+                  <div class="slider-thumb" style="left:40%"></div>
+                </div>
+                <span class="slider-value">40%</span>
+              </div>
+            </div>
+
+            <!-- Noise Reduction -->
+            <div class="filter-item">
+              <div class="filter-header">
+                <span class="filter-name">🔇 Noise Reduction</span>
+                <div class="toggle-switch"></div>
+              </div>
+              <div class="slider-row">
+                <span class="form-label" style="min-width:60px; margin-bottom:0">Force</span>
+                <div class="slider-track">
+                  <div class="slider-fill" style="width:0%"></div>
+                  <div class="slider-thumb" style="left:0%"></div>
+                </div>
+                <span class="slider-value">0%</span>
+              </div>
+            </div>
+
+            <!-- HDR Tonemapping -->
+            <div class="filter-item">
+              <div class="filter-header">
+                <span class="filter-name">🌅 HDR Tonemapping</span>
+                <div class="toggle-switch on"></div>
+              </div>
+              <div class="slider-row">
+                <span class="form-label" style="min-width:60px; margin-bottom:0">Intensité</span>
+                <div class="slider-track">
+                  <div class="slider-fill" style="width:60%"></div>
+                  <div class="slider-thumb" style="left:60%"></div>
+                </div>
+                <span class="slider-value">60%</span>
+              </div>
+            </div>
+
+            <!-- Broadcast Style -->
+            <div class="filter-item">
+              <div class="filter-header">
+                <span class="filter-name">📺 Style Broadcast</span>
+                <div class="toggle-switch"></div>
+              </div>
+              <div class="filter-preset-chips">
+                <span class="preset-chip">Standard</span>
+                <span class="preset-chip">Vivid</span>
+                <span class="preset-chip">Neutral</span>
+                <span class="preset-chip">Dynamic Contrast</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           6. DURÉE D'AFFICHAGE PANEL
+           ======================================================== -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="dot"></span> Durée d'Affichage</span>
+        </div>
+        <div class="panel-body">
+          <div class="duration-control">
+            <div class="duration-display">
+              <div class="duration-timer">05.0</div>
+              <div class="duration-label">secondes</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Durée (secondes)</label>
+              <input type="number" class="form-input" value="5.0" min="0.5" max="60" step="0.5" style="font-family:var(--font-mono); text-align:center; font-size:16px">
+            </div>
+
+            <div class="mode-toggle">
+              <button class="mode-btn active">⏱ Automatique</button>
+              <button class="mode-btn">✋ Manuel</button>
+            </div>
+
+            <div>
+              <label class="form-label">Timer Preview</label>
+              <div class="timer-progress">
+                <div class="timer-progress-fill"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-top:4px">
+                <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">0.0s</span>
+                <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">5.0s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       RIGHT PANEL — AI Recognition + Logs
+       ============================================================ -->
+  <div class="right-panel">
+
+    <!-- ========================================================
+         7. IA & RECONNAISSANCE PANEL
+         ======================================================== -->
+    <div class="panel" style="border-radius:0; border-left:none; border-right:none; border-top:none">
+      <div class="panel-header">
+        <span class="panel-title"><span class="dot"></span> IA &amp; Reconnaissance</span>
+        <div class="panel-actions">
+          <button title="History">📋</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="recognition-current">
+          <div class="face-detection-box">
+            <span class="face-icon">👤</span>
+            <div class="detect-corners">
+              <div class="corner tl"></div>
+              <div class="corner tr"></div>
+              <div class="corner bl"></div>
+              <div class="corner br"></div>
+            </div>
+          </div>
+          <div class="recognition-details">
+            <div class="recognition-row">
+              <span class="label">Visage détecté</span>
+              <span class="value" style="color:var(--success)">✔ Oui</span>
+            </div>
+            <div class="recognition-row">
+              <span class="label">Talent reconnu</span>
+              <span class="value">Marie Dupont</span>
+            </div>
+            <div class="recognition-row">
+              <span class="label">Rôle</span>
+              <span class="value">Présentatrice</span>
+            </div>
+            <div class="confidence-bar-container">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px">
+                <span style="font-size:10px; color:var(--text-muted)">Confiance</span>
+                <span style="font-size:11px; font-weight:700; color:var(--success); font-family:var(--font-mono)">96.4%</span>
+              </div>
+              <div class="confidence-bar">
+                <div class="confidence-fill high" style="width:96.4%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <label class="form-label">Historique</label>
+        <div class="history-list">
+          <div class="history-item">
+            <span class="history-time">14:32:08</span>
+            <span class="history-name">Marie Dupont</span>
+            <span class="history-confidence" style="color:var(--success)">96.4%</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:31:45</span>
+            <span class="history-name">Jean Martin</span>
+            <span class="history-confidence" style="color:var(--success)">91.2%</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:30:12</span>
+            <span class="history-name">Inconnu</span>
+            <span class="history-confidence" style="color:var(--danger)">34.1%</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:28:56</span>
+            <span class="history-name">Marie Dupont</span>
+            <span class="history-confidence" style="color:var(--success)">98.1%</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:27:03</span>
+            <span class="history-name">Jean Martin</span>
+            <span class="history-confidence" style="color:var(--warning)">72.5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         8. LOGS & MONITORING PANEL
+         ======================================================== -->
+    <div class="panel" style="border-radius:0; border-left:none; border-right:none">
+      <div class="panel-header">
+        <span class="panel-title"><span class="dot"></span> Logs &amp; Monitoring</span>
+        <div class="panel-actions">
+          <button title="Clear">🗑</button>
+          <button title="Export">📤</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Metrics -->
+        <div class="metrics-bar-row">
+          <span class="metrics-label">CPU</span>
+          <div class="metrics-bar"><div class="metrics-fill cpu" style="width:42%"></div></div>
+          <span class="metrics-value">42%</span>
+        </div>
+        <div class="metrics-bar-row">
+          <span class="metrics-label">GPU</span>
+          <div class="metrics-bar"><div class="metrics-fill gpu" style="width:68%"></div></div>
+          <span class="metrics-value">68%</span>
+        </div>
+        <div class="metrics-bar-row">
+          <span class="metrics-label">FPS</span>
+          <div class="metrics-bar"><div class="metrics-fill" style="width:99%; background:var(--success)"></div></div>
+          <span class="metrics-value" style="color:var(--success)">59.9</span>
+        </div>
+
+        <!-- Log tabs -->
+        <div class="log-tabs" style="margin-top:10px">
+          <button class="log-tab active">IA</button>
+          <button class="log-tab">Moteur</button>
+          <button class="log-tab">ZeroMQ</button>
+          <button class="log-tab">Système</button>
+        </div>
+
+        <div class="log-output">
+          <div class="log-line">
+            <span class="log-time">14:32:08</span>
+            <span class="log-source">AI</span>
+            <span class="log-msg"><span class="log-level-info">INFO</span> Face detected — confidence 96.4%</span>
+          </div>
+          <div class="log-line">
+            <span class="log-time">14:32:08</span>
+            <span class="log-source">AI</span>
+            <span class="log-msg"><span class="log-level-info">INFO</span> Talent matched: Marie Dupont (talent_1)</span>
+          </div>
+          <div class="log-line">
+            <span class="log-time">14:32:07</span>
+            <span class="log-source">ENG</span>
+            <span class="log-msg"><span class="log-level-info">INFO</span> Overlay applied: modern_blue (fade_in 500ms)</span>
+          </div>
+          <div class="log-line">
+            <span class="log-time">14:32:05</span>
+            <span class="log-source">ZMQ</span>
+            <span class="log-msg"><span class="log-level-info">INFO</span> PUB→SUB metadata sent (128 bytes)</span>
+          </div>
+          <div class="log-line">
+            <span class="log-time">14:31:58</span>
+            <span class="log-source">ENG</span>
+            <span class="log-msg"><span class="log-level-warn">WARN</span> Frame drop detected — pipeline 58.2 fps</span>
+          </div>
+          <div class="log-line">
+            <span class="log-time">14:31:45</span>
+            <span class="log-source">AI</span>
+            <span class="log-msg"><span class="log-level-info">INFO</span> Talent matched: Jean Martin (talent_2)</span>
+          </div>
+          <div class="log-line">
+            <span class="log-time">14:31:30</span>
+            <span class="log-source">SYS</span>
+            <span class="log-msg"><span class="log-level-info">INFO</span> GPU temperature: 62°C — VRAM 4.2/8.0 GB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Theme toggle
+document.querySelector('.theme-toggle').addEventListener('click', function() {
+  document.body.classList.toggle('light-theme');
+});
+</script>
+
+</body>
+</html>

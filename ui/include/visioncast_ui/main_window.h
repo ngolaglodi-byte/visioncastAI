@@ -25,6 +25,9 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override;
 
+    /// Load and apply a Qt stylesheet (.qss) from the given file path.
+    void loadTheme(const QString& qssPath);
+
 private slots:
     void onSourceChanged(const QString& source);
     void onOverlayToggled(bool enabled);
@@ -32,6 +35,7 @@ private slots:
     void onStopBroadcast();
     void onEngineStartRequested(const QString& sourceName);
     void onEngineStopRequested();
+    void onThemeSelected(const QString& themeName);
 
 private:
     PreviewPanel* previewPanel_ = nullptr;
