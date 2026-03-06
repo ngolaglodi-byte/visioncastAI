@@ -128,15 +128,16 @@ void MainWindow::loadTheme(const QString& qssPath) {
         QString styleSheet = file.readAll();
         file.close();
         qApp->setStyleSheet(styleSheet);
+    } else {
+        statusBar()->showMessage("Failed to load theme: " + qssPath);
     }
 }
 
 void MainWindow::onThemeSelected(const QString& themeName) {
-    QString qssFile;
-    if (themeName == "Light")
-        qssFile = "themes/light.qss";
-    else
-        qssFile = "themes/dark.qss";
+    static const QString kThemeDark  = QStringLiteral("themes/dark.qss");
+    static const QString kThemeLight = QStringLiteral("themes/light.qss");
+
+    const QString& qssFile = (themeName == "Light") ? kThemeLight : kThemeDark;
     loadTheme(qssFile);
     statusBar()->showMessage("Theme: " + themeName);
 }

@@ -247,6 +247,7 @@ QLineEdit {
     padding: 7px 10px;
     color: #e6edf3;
     selection-background-color: #1f6feb;
+    selection-color: #ffffff;
     font-size: 13px;
 }
 
@@ -424,6 +425,7 @@ QPlainTextEdit {
     font-size: 11px;
     padding: 8px;
     selection-background-color: #1f6feb;
+    selection-color: #ffffff;
 }
 
 /* --- Label --- */
