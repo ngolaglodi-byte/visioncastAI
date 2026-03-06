@@ -13,7 +13,8 @@
     "animation_duration_ms": 500,
     "exit_animation": "fade_out",
     "exit_animation_duration_ms": 400,
-    "easing": "ease_in_out"
+    "easing": "ease_in_out",
+    "display_duration_ms": 5000
   },
   "layout": {
     "title_offset_x": 40,

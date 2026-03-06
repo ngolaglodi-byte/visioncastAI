@@ -2,6 +2,7 @@ import os
 import cv2
 import face_recognition
 import json
+import time
 import numpy as np
 
 # Charger la base talents
@@ -11,6 +12,9 @@ TALENTS_PATH = os.path.join(PROJECT_ROOT, "talents", "talents.json")
 
 with open(TALENTS_PATH, "r", encoding="utf-8") as f:
     TALENTS = json.load(f)["talents"]
+
+# Configurable lower-third display duration in seconds (default: 5s).
+LOWER_THIRD_DURATION_SEC = float(os.environ.get("LOWER_THIRD_DURATION_SEC", "5.0"))
 
 # Charger les images talents + encodings
 KNOWN_ENCODINGS = []
@@ -42,6 +46,9 @@ def draw_lower_third(frame, title, subtitle):
 
     return frame
 
+# Timer state per talent: maps talent index -> timestamp when lower third was first shown
+_lower_third_timers = {}
+
 cap = cv2.VideoCapture(0)
 
 while True:
@@ -57,12 +64,21 @@ while True:
     # Encodage stable (compatible Python 3.11 + dlib)
     encodings = face_recognition.face_encodings(rgb, locations)
 
+    now = time.monotonic()
+
     for enc in encodings:
         matches = face_recognition.compare_faces(KNOWN_ENCODINGS, enc, tolerance=0.45)
         if True in matches:
             idx = matches.index(True)
             t = KNOWN_METADATA[idx]
-            frame = draw_lower_third(frame, t["name"], t["role"])
+
+            # Start timer on first detection, show lower third for the configured duration
+            if idx not in _lower_third_timers:
+                _lower_third_timers[idx] = now
+
+            elapsed = now - _lower_third_timers[idx]
+            if elapsed < LOWER_THIRD_DURATION_SEC:
+                frame = draw_lower_third(frame, t["name"], t["role"])
 
     cv2.imshow("VisionCast AI - MVP", frame)
 
