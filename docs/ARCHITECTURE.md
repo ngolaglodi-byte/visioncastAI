@@ -113,15 +113,29 @@ visioncast-ai/
 │   │   └── visioncast_sdk/
 │   │       ├── video_device.h     # Abstract base device interface
 │   │       ├── decklink_device.h  # Blackmagic DeckLink wrapper
+│   │       ├── decklink_input.h   # DeckLink capture (SDI/HDMI, 1080p/4K)
+│   │       ├── decklink_output.h  # DeckLink playout (SDI/HDMI, 1080p/4K)
 │   │       ├── aja_device.h       # AJA video device wrapper
+│   │       ├── aja_input.h        # AJA capture
+│   │       ├── aja_output.h       # AJA playout
 │   │       ├── magewell_device.h  # Magewell capture wrapper
-│   │       └── ndi_device.h       # NDI network device wrapper
+│   │       ├── magewell_input.h   # Magewell capture
+│   │       ├── ndi_device.h       # NDI network device wrapper
+│   │       ├── ndi_input.h        # NDI receive
+│   │       └── ndi_output.h       # NDI send
 │   └── src/
 │       ├── video_device.cpp
 │       ├── decklink_device.cpp
+│       ├── decklink_input.cpp
+│       ├── decklink_output.cpp
 │       ├── aja_device.cpp
+│       ├── aja_input.cpp
+│       ├── aja_output.cpp
 │       ├── magewell_device.cpp
-│       └── ndi_device.cpp
+│       ├── magewell_input.cpp
+│       ├── ndi_device.cpp
+│       ├── ndi_input.cpp
+│       └── ndi_output.cpp
 │
 ├── overlays/                      # Overlay Templates & Assets
 │   ├── README.md
@@ -877,6 +891,94 @@ private:
     NDIlib_send_instance_t sender_ = nullptr;
     NDIlib_recv_instance_t receiver_ = nullptr;
     NDIlib_find_instance_t finder_ = nullptr;
+};
+```
+
+### 6.4 Role-Specific Input/Output Classes
+
+In addition to the bidirectional device wrappers above, the SDK provides specialised
+input-only and output-only classes.  Each class implements `IVideoDevice` and exposes
+role-specific helpers (signal detection, connector selection, genlock reference, etc.).
+
+#### DeckLinkInput / DeckLinkOutput (`decklink_input.h` / `decklink_output.h`)
+
+```cpp
+enum class DeckLinkConnector { SDI, HDMI, AUTO };
+enum class DeckLinkReference  { FREE_RUN, EXTERNAL, INPUT };
+
+class DeckLinkInput : public IVideoDevice {
+public:
+    // IVideoDevice (capture path only; playout methods are no-ops)
+    void setConnector(DeckLinkConnector connector);
+    DeckLinkConnector connector() const;
+    bool hasSignal() const;
+    VideoMode detectedMode() const;
+    static std::vector<DeviceConfig> enumerateDevices();
+};
+
+class DeckLinkOutput : public IVideoDevice {
+public:
+    // IVideoDevice (playout path only; capture methods are no-ops)
+    void setConnector(DeckLinkConnector connector);
+    DeckLinkConnector connector() const;
+    void setReferenceSource(DeckLinkReference ref);
+    DeckLinkReference referenceSource() const;
+    bool isOutputActive() const;
+    static std::vector<DeviceConfig> enumerateDevices();
+};
+```
+
+#### AJAInput / AJAOutput (`aja_input.h` / `aja_output.h`)
+
+```cpp
+enum class AJAReference { FREE_RUN, EXTERNAL, INPUT };
+
+class AJAInput : public IVideoDevice {
+public:
+    void setChannel(int channel);
+    int channel() const;
+    bool hasSignal() const;
+    VideoMode detectedMode() const;
+    static std::vector<DeviceConfig> enumerateDevices();
+};
+
+class AJAOutput : public IVideoDevice {
+public:
+    void setChannel(int channel);
+    int channel() const;
+    void setReferenceSource(AJAReference ref);
+    AJAReference referenceSource() const;
+    bool isOutputActive() const;
+    static std::vector<DeviceConfig> enumerateDevices();
+};
+```
+
+#### MagewellInput (`magewell_input.h`)
+
+```cpp
+class MagewellInput : public IVideoDevice {
+public:
+    bool hasSignal() const;
+    VideoMode detectedMode() const;
+    static std::vector<DeviceConfig> enumerateDevices();
+};
+```
+
+#### NDIInput / NDIOutput (`ndi_input.h` / `ndi_output.h`)
+
+```cpp
+class NDIInput : public IVideoDevice {
+public:
+    static std::vector<DeviceConfig> discoverSources();
+    bool hasSignal() const;
+    VideoMode detectedMode() const;
+};
+
+class NDIOutput : public IVideoDevice {
+public:
+    void setSourceName(const std::string& name);
+    std::string sourceName() const;
+    bool isOutputActive() const;
 };
 ```
 

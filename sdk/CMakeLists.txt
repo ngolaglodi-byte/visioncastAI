@@ -4,9 +4,16 @@ cmake_minimum_required(VERSION 3.20)
 set(SDK_SOURCES
     src/video_device.cpp
     src/decklink_device.cpp
+    src/decklink_input.cpp
+    src/decklink_output.cpp
     src/aja_device.cpp
+    src/aja_input.cpp
+    src/aja_output.cpp
     src/magewell_device.cpp
+    src/magewell_input.cpp
     src/ndi_device.cpp
+    src/ndi_input.cpp
+    src/ndi_output.cpp
 )
 
 add_library(visioncast_sdk STATIC ${SDK_SOURCES})
