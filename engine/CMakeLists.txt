@@ -20,6 +20,7 @@ set(ENGINE_SOURCES
     src/pipeline_manager.cpp
     src/overlay_renderer.cpp
     src/filter_chain.cpp
+    src/video_filters.cpp
     src/output_manager.cpp
     src/metadata_receiver.cpp
     src/zmq_receiver.cpp

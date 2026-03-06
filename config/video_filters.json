@@ -1,0 +1,42 @@
+{
+  "video_filters": {
+    "cinema_lut": {
+      "enabled": false,
+      "lut_path": "",
+      "intensity": 1.0,
+      "description": "Cinema 3D LUT colour grading (warm highlights, teal shadows, lifted blacks)"
+    },
+    "sharpen": {
+      "enabled": false,
+      "strength": 1.0,
+      "kernel_size": 3,
+      "description": "Unsharp-mask sharpening to increase perceived detail"
+    },
+    "noise_reduction": {
+      "enabled": false,
+      "strength": 7,
+      "sigma_color": 75.0,
+      "sigma_space": 75.0,
+      "description": "Edge-preserving bilateral noise reduction"
+    },
+    "hdr_tonemap": {
+      "enabled": false,
+      "gamma": 1.0,
+      "saturation": 1.0,
+      "description": "HDR-to-SDR Reinhard tonemapping with gamma and saturation control"
+    },
+    "dynamic_contrast": {
+      "enabled": false,
+      "clip_limit": 2.0,
+      "tile_grid_size": 8,
+      "description": "CLAHE adaptive contrast enhancement on luminance channel"
+    }
+  },
+  "filter_order": [
+    "noise_reduction",
+    "cinema_lut",
+    "hdr_tonemap",
+    "dynamic_contrast",
+    "sharpen"
+  ]
+}
