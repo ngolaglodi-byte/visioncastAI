@@ -5,8 +5,6 @@ organization, overlay, theme_color, filters, animations, confidence)
 over ZeroMQ PUB/SUB for real-time overlay rendering.
 """
 
-import time
-
 try:
     import zmq
 except ImportError:
