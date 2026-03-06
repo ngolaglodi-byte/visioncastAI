@@ -384,3 +384,174 @@ class TestRecognition:
             assert len(result.faces) == 1
             assert result.faces[0]["talent"]["name"] == "Bob"
             assert result.faces[0]["track_id"] is not None
+
+
+# =====================================================================
+# protocol.py – TalentOverlayMessage tests
+# =====================================================================
+
+class TestTalentOverlayMessage:
+    """Tests for the TalentOverlayMessage dataclass."""
+
+    def test_defaults(self):
+        from ipc.protocol import TalentOverlayMessage
+
+        msg = TalentOverlayMessage(talent_id="t1", name="Alice", role="Host")
+        assert msg.talent_id == "t1"
+        assert msg.name == "Alice"
+        assert msg.role == "Host"
+        assert msg.organization == ""
+        assert msg.overlay == ""
+        assert msg.theme_color == "#FFFFFF"
+        assert msg.filters == {}
+        assert msg.animations == {}
+        assert msg.confidence == 0.0
+
+    def test_to_json(self):
+        from ipc.protocol import TalentOverlayMessage
+
+        msg = TalentOverlayMessage(
+            talent_id="glody",
+            name="Glody",
+            role="Présentateur",
+            organization="VisionCast Media",
+            overlay="overlays/templates/default.json",
+            theme_color="#1A73E8",
+            filters={"brightness": 1.0, "contrast": 1.0},
+            animations={"entry": "slide_left", "exit": "fade_out"},
+            confidence=0.95,
+        )
+        data = json.loads(msg.to_json())
+        assert data["type"] == "talent_overlay"
+        assert data["talent_id"] == "glody"
+        assert data["name"] == "Glody"
+        assert data["role"] == "Présentateur"
+        assert data["organization"] == "VisionCast Media"
+        assert data["overlay"] == "overlays/templates/default.json"
+        assert data["theme_color"] == "#1A73E8"
+        assert data["filters"]["brightness"] == 1.0
+        assert data["animations"]["entry"] == "slide_left"
+        assert data["confidence"] == 0.95
+
+    def test_from_json_roundtrip(self):
+        from ipc.protocol import TalentOverlayMessage
+
+        original = TalentOverlayMessage(
+            talent_id="t2",
+            name="Bob",
+            role="Analyst",
+            organization="Corp",
+            overlay="overlay.json",
+            theme_color="#FF0000",
+            filters={"saturation": 0.8},
+            animations={"duration_ms": 500},
+            confidence=0.88,
+        )
+        restored = TalentOverlayMessage.from_json(original.to_json())
+        assert restored.talent_id == original.talent_id
+        assert restored.name == original.name
+        assert restored.role == original.role
+        assert restored.organization == original.organization
+        assert restored.overlay == original.overlay
+        assert restored.theme_color == original.theme_color
+        assert restored.filters == original.filters
+        assert restored.animations == original.animations
+        assert restored.confidence == original.confidence
+
+    def test_from_json_minimal(self):
+        from ipc.protocol import TalentOverlayMessage
+
+        payload = json.dumps({
+            "talent_id": "x",
+            "name": "X",
+            "role": "R",
+        })
+        msg = TalentOverlayMessage.from_json(payload)
+        assert msg.talent_id == "x"
+        assert msg.organization == ""
+        assert msg.filters == {}
+        assert msg.animations == {}
+
+
+# =====================================================================
+# zmq_sender.py tests
+# =====================================================================
+
+class TestZmqSender:
+    """Tests for the ZmqSender class."""
+
+    @mock.patch("ipc.zmq_sender.zmq")
+    def test_send_publishes_multipart(self, mock_zmq):
+        from ipc.zmq_sender import ZmqSender
+        from ipc.protocol import TalentOverlayMessage
+
+        mock_ctx = mock.MagicMock()
+        mock_socket = mock.MagicMock()
+        mock_zmq.Context.return_value = mock_ctx
+        mock_ctx.socket.return_value = mock_socket
+        mock_zmq.PUB = 1
+
+        sender = ZmqSender(endpoint="tcp://127.0.0.1:9999")
+
+        msg = TalentOverlayMessage(
+            talent_id="t1",
+            name="Alice",
+            role="Host",
+            organization="Org",
+            confidence=0.9,
+        )
+        sender.send(msg)
+
+        mock_socket.send_multipart.assert_called_once()
+        topic, payload = mock_socket.send_multipart.call_args[0][0]
+        assert topic == b"talent.overlay"
+        data = json.loads(payload.decode("utf-8"))
+        assert data["talent_id"] == "t1"
+        assert data["name"] == "Alice"
+        assert data["organization"] == "Org"
+        assert data["confidence"] == 0.9
+
+        sender.close()
+        mock_socket.close.assert_called_once()
+        mock_ctx.term.assert_called_once()
+
+    @mock.patch("ipc.zmq_sender.zmq")
+    def test_send_talent_convenience(self, mock_zmq):
+        from ipc.zmq_sender import ZmqSender
+
+        mock_ctx = mock.MagicMock()
+        mock_socket = mock.MagicMock()
+        mock_zmq.Context.return_value = mock_ctx
+        mock_ctx.socket.return_value = mock_socket
+        mock_zmq.PUB = 1
+
+        sender = ZmqSender()
+        sender.send_talent(
+            talent_id="glody",
+            name="Glody",
+            role="Présentateur",
+            organization="VisionCast Media",
+            overlay="overlays/templates/default.json",
+            theme_color="#1A73E8",
+            filters={"brightness": 1.0},
+            animations={"entry": "slide_left"},
+            confidence=0.95,
+        )
+
+        topic, payload = mock_socket.send_multipart.call_args[0][0]
+        data = json.loads(payload.decode("utf-8"))
+        assert data["talent_id"] == "glody"
+        assert data["role"] == "Présentateur"
+        assert data["theme_color"] == "#1A73E8"
+        assert data["filters"]["brightness"] == 1.0
+        assert data["animations"]["entry"] == "slide_left"
+        assert data["confidence"] == 0.95
+
+        sender.close()
+
+    @mock.patch("ipc.zmq_sender.zmq", None)
+    def test_missing_pyzmq_raises(self):
+        from ipc.zmq_sender import ZmqSender
+
+        with pytest.raises(ImportError, match="pyzmq"):
+            ZmqSender()

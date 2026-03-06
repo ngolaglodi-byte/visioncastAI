@@ -7,7 +7,56 @@ See docs/ARCHITECTURE.md Section 8 for the full protocol specification.
 import json
 import time
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Any, Dict, Optional
+
+
+@dataclass
+class TalentOverlayMessage:
+    """Rich talent metadata sent to the engine for overlay rendering.
+
+    Contains visual and identification data for a recognized talent,
+    including overlay configuration, theme, filters, and animations.
+    """
+    talent_id: str
+    name: str
+    role: str
+    organization: str = ""
+    overlay: str = ""
+    theme_color: str = "#FFFFFF"
+    filters: Dict[str, Any] = field(default_factory=dict)
+    animations: Dict[str, Any] = field(default_factory=dict)
+    confidence: float = 0.0
+
+    def to_json(self) -> str:
+        """Serialize to JSON string for ZeroMQ transmission."""
+        return json.dumps({
+            "type": "talent_overlay",
+            "talent_id": self.talent_id,
+            "name": self.name,
+            "role": self.role,
+            "organization": self.organization,
+            "overlay": self.overlay,
+            "theme_color": self.theme_color,
+            "filters": self.filters,
+            "animations": self.animations,
+            "confidence": self.confidence,
+        })
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "TalentOverlayMessage":
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        return cls(
+            talent_id=data["talent_id"],
+            name=data["name"],
+            role=data["role"],
+            organization=data.get("organization", ""),
+            overlay=data.get("overlay", ""),
+            theme_color=data.get("theme_color", "#FFFFFF"),
+            filters=data.get("filters", {}),
+            animations=data.get("animations", {}),
+            confidence=data.get("confidence", 0.0),
+        )
 
 
 @dataclass
