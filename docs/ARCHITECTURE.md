@@ -74,7 +74,8 @@ visioncast-ai/
 │   │       ├── overlay_renderer.h # Lower-third / overlay compositing
 │   │       ├── filter_chain.h     # Video filter pipeline
 │   │       ├── output_manager.h   # Broadcast output routing
-│   │       └── metadata_receiver.h # IPC metadata from Python
+│   │       ├── metadata_receiver.h # IPC metadata from Python
+│   │       └── vision_engine.h    # GPU vision engine (capture + preview + render)
 │   └── src/                       # Implementation
 │       ├── main.cpp               # Engine entry point
 │       ├── capture_manager.cpp
@@ -82,7 +83,8 @@ visioncast-ai/
 │       ├── overlay_renderer.cpp
 │       ├── filter_chain.cpp
 │       ├── output_manager.cpp
-│       └── metadata_receiver.cpp
+│       ├── metadata_receiver.cpp
+│       └── vision_engine.cpp      # VisionEngine implementation
 │
 ├── ui/                            # Qt Control Room
 │   ├── CMakeLists.txt             # Qt CMake build
@@ -455,6 +457,81 @@ private:
     std::atomic<bool> running_;
     mutable std::mutex dataMutex_;
     RecognitionMetadata latestMetadata_;
+};
+```
+
+#### `VisionEngine`
+
+Self-contained vision engine combining live video capture, an OpenGL GPU rendering pipeline with texture upload, a real-time preview window, and a frame-rate-governed render loop.
+
+When built with `HAS_OPENGL=1` (GLFW + GLEW + OpenGL 3.3), the engine creates a native GPU window and renders captured frames through a full-screen-quad shader. Without OpenGL it falls back to an OpenCV highgui preview.
+
+```cpp
+/// Start-up configuration.
+struct VisionEngineConfig {
+    int captureDeviceIndex = 0;
+    std::string captureUri;           // File or stream URI
+    int previewWidth  = 1280;
+    int previewHeight = 720;
+    std::string windowTitle = "VisionCast Preview";
+    double targetFps  = 25.0;
+    bool enableGpu    = true;         // Attempt GPU pipeline
+};
+
+/// Lightweight GPU texture handle.
+struct GpuTexture {
+    unsigned int id = 0;              // OpenGL texture name
+    int width  = 0;
+    int height = 0;
+    bool valid = false;
+};
+
+class VisionEngine {
+public:
+    VisionEngine();
+    explicit VisionEngine(const VisionEngineConfig& config);
+    ~VisionEngine();
+
+    // Lifecycle
+    bool initialize();                // Capture + window + GPU
+    void shutdown();
+
+    // Video capture (OpenCV)
+    bool openCapture(int deviceIndex);
+    bool openCapture(const std::string& uri);
+    void closeCapture();
+    bool isCaptureOpen() const;
+    bool grabFrame(VideoFrame& outFrame);
+
+    // Preview window
+    bool createPreviewWindow(const std::string& title, int w, int h);
+    void destroyPreviewWindow();
+    bool isPreviewOpen() const;
+
+    // GPU pipeline (OpenGL 3.3 / Vulkan-ready)
+    bool initGpuPipeline();
+    void shutdownGpuPipeline();
+    bool isGpuReady() const;
+
+    // GPU textures
+    GpuTexture uploadTexture(const uint8_t* data, int w, int h, int ch);
+    bool updateTexture(GpuTexture& tex, const uint8_t* data, int w, int h, int ch);
+    void deleteTexture(GpuTexture& tex);
+
+    // Render loop (blocking)
+    void run();
+    void stop();
+    bool isRunning() const;
+
+    // Configuration
+    void setFrameRate(double fps);
+    void setResolution(int width, int height);
+    using FrameCallback = std::function<void(VideoFrame&)>;
+    void setFrameCallback(FrameCallback callback);
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;  // PIMPL hides OpenCV/GL/GLFW types
 };
 ```
 
