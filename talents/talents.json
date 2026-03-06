@@ -1,11 +1,24 @@
 {
   "talents": [
     {
-      "id": "glody",
+      "talent_id": "glody",
       "name": "Glody",
       "role": "Présentateur",
-      "image": "talents/glody.jpeg",
-      "overlay": "overlays/default.png"
+      "organization": "VisionCast Media",
+      "photo": "talents/glody.jpeg",
+      "overlay": "overlays/templates/default.json",
+      "theme_color": "#1A73E8",
+      "filters": {
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "saturation": 1.0
+      },
+      "animations": {
+        "entry": "slide_left",
+        "exit": "fade_out",
+        "duration_ms": 500
+      },
+      "priority": 1
     }
   ]
 }

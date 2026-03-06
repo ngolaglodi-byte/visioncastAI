@@ -150,7 +150,7 @@ class TalentsLoader:
 
     def _process_talent(self, talent: dict) -> Optional[np.ndarray]:
         """Load a talent image and return its encoding."""
-        image_path = os.path.join(self.project_root, talent["image"])
+        image_path = os.path.join(self.project_root, talent["photo"])
 
         if not os.path.isfile(image_path):
             print(f"[TalentsLoader] Image not found: {image_path}")

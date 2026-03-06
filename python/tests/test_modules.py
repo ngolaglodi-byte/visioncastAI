@@ -210,10 +210,10 @@ class TestTalentsLoader:
             talents = {
                 "talents": [
                     {
-                        "id": "test",
+                        "talent_id": "test",
                         "name": "Test Person",
                         "role": "Host",
-                        "image": "img/test.jpg",
+                        "photo": "img/test.jpg",
                     }
                 ]
             }
@@ -246,10 +246,10 @@ class TestTalentsLoader:
             talents = {
                 "talents": [
                     {
-                        "id": "alice",
+                        "talent_id": "alice",
                         "name": "Alice",
                         "role": "Host",
-                        "image": "img/alice.jpg",
+                        "photo": "img/alice.jpg",
                     }
                 ]
             }
@@ -354,7 +354,7 @@ class TestRecognition:
         with tempfile.TemporaryDirectory() as tmpdir:
             talents_data = {
                 "talents": [
-                    {"id": "t1", "name": "Bob", "role": "Host", "image": "img/b.jpg"}
+                    {"talent_id": "t1", "name": "Bob", "role": "Host", "photo": "img/b.jpg"}
                 ]
             }
             json_path = os.path.join(tmpdir, "talents.json")
