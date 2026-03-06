@@ -208,7 +208,7 @@ QString DesignPanel::currentTheme() const {
 }
 
 // -----------------------------------------------------------------
-// Colours
+// Colors
 // -----------------------------------------------------------------
 
 void DesignPanel::setPrimaryColor(const QString& hex) {

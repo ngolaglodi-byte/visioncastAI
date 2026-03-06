@@ -2,7 +2,7 @@
 
 /// @file design_panel.h
 /// @brief Design & overlays panel — lower thirds, animated templates,
-///        themes, colours, logos, and transitions.
+///        themes, colors, logos, and transitions.
 
 #include <QWidget>
 
@@ -16,7 +16,7 @@ namespace visioncast_ui {
 
 /// Design panel that exposes the six overlay-related sub-sections
 /// requested for the broadcast UI: lower thirds, animated templates,
-/// themes, colours, logos and transitions.
+/// themes, colors, logos and transitions.
 class DesignPanel : public QWidget {
     Q_OBJECT
 
@@ -36,7 +36,7 @@ public:
     void    setTheme(const QString& themeName);
     QString currentTheme() const;
 
-    // -- Colours -----------------------------------------------------
+    // -- Colors ------------------------------------------------------
     void    setPrimaryColor(const QString& hex);
     void    setAccentColor(const QString& hex);
     QString primaryColor() const;
@@ -76,7 +76,7 @@ private:
     // Themes
     QComboBox* themeCombo_ = nullptr;
 
-    // Colours
+    // Colors
     QLineEdit*   primaryColorEdit_ = nullptr;
     QLineEdit*   accentColorEdit_  = nullptr;
     QPushButton* pickPrimaryButton_ = nullptr;
