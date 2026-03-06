@@ -17,6 +17,7 @@ set(ENGINE_SOURCES
     src/filter_chain.cpp
     src/output_manager.cpp
     src/metadata_receiver.cpp
+    src/zmq_receiver.cpp
 )
 
 add_library(visioncast_engine_lib STATIC ${ENGINE_SOURCES})
