@@ -21,8 +21,8 @@ PROJECT_ROOT = os.path.abspath(
 )
 
 UI_INCLUDE = os.path.join(PROJECT_ROOT, "ui", "include", "visioncast_ui")
-UI_SRC     = os.path.join(PROJECT_ROOT, "ui", "src")
-UI_CMAKE   = os.path.join(PROJECT_ROOT, "ui", "CMakeLists.txt")
+UI_SRC = os.path.join(PROJECT_ROOT, "ui", "src")
+UI_CMAKE = os.path.join(PROJECT_ROOT, "ui", "CMakeLists.txt")
 
 
 def _read(path):
