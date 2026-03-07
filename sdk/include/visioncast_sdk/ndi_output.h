@@ -5,8 +5,13 @@
 ///
 /// Wraps NDIDevice for output-only use cases.
 /// Requires the NDI SDK to be installed in sdk/ndi/.
+///
+/// Also implements VideoOutputInterface for unified output access.
+/// Supports both NDI HX (compressed) and Full NDI (uncompressed) streams.
 
 #include "visioncast_sdk/video_device.h"
+#include "visioncast_sdk/video_output_interface.h"
+#include "visioncast_sdk/ndi_input.h"   // NDIBandwidth enum
 
 #include <memory>
 #include <string>
@@ -16,7 +21,9 @@
 ///
 /// Publishes an NDI stream on the local network.
 /// Implements the IVideoDevice interface restricted to playout operations.
-class NDIOutput : public IVideoDevice {
+/// Also implements VideoOutputInterface for unified output access.
+/// Supports NDI HX (compressed) and Full NDI (uncompressed).
+class NDIOutput : public IVideoDevice, public VideoOutputInterface {
 public:
     NDIOutput();
     ~NDIOutput() override;
@@ -45,6 +52,15 @@ public:
     void setVideoMode(const VideoMode& mode) override;
     VideoMode currentMode() const override;
 
+    // -- VideoOutputInterface --
+    bool openOutput(const DeviceConfig& config) override;
+    void closeOutput() override;
+    bool isOutputOpen() const override;
+    bool isOutputActive() const override;
+    std::string outputDeviceName() const override;
+    std::vector<VideoMode> supportedOutputModes() const override;
+    void setOutputTimecode(const std::string& timecode) override;
+
     // -- NDIOutput-specific --
 
     /// Set the NDI source name visible on the network.
@@ -53,8 +69,11 @@ public:
     /// Return the current source name.
     std::string sourceName() const;
 
-    /// Check whether the output is actively sending frames.
-    bool isOutputActive() const;
+    /// Set the NDI bandwidth mode (Full NDI or NDI HX).
+    void setBandwidth(NDIBandwidth bandwidth);
+
+    /// Return the current bandwidth mode.
+    NDIBandwidth bandwidth() const;
 
 private:
     struct Impl;

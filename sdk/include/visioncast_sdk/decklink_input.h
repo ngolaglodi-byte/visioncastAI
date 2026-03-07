@@ -5,9 +5,13 @@
 ///
 /// Wraps DeckLinkDevice for input-only use cases.
 /// Requires the Blackmagic DeckLink SDK to be installed in sdk/decklink/.
+///
+/// Also implements VideoInputInterface for unified input access.
 
 #include "visioncast_sdk/video_device.h"
+#include "visioncast_sdk/video_input_interface.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,7 +27,8 @@ enum class DeckLinkConnector {
 ///
 /// Supports 1080p and 4K capture over SDI or HDMI connectors.
 /// Implements the IVideoDevice interface restricted to capture operations.
-class DeckLinkInput : public IVideoDevice {
+/// Also implements VideoInputInterface for unified input access.
+class DeckLinkInput : public IVideoDevice, public VideoInputInterface {
 public:
     DeckLinkInput();
     ~DeckLinkInput() override;
@@ -52,6 +57,17 @@ public:
     void setVideoMode(const VideoMode& mode) override;
     VideoMode currentMode() const override;
 
+    // -- VideoInputInterface --
+    bool openInput(const DeviceConfig& config) override;
+    void closeInput() override;
+    bool isInputOpen() const override;
+    void setFrameCallback(FrameCallback callback) override;
+    bool hasSignal() const override;
+    VideoMode detectedMode() const override;
+    std::string inputDeviceName() const override;
+    std::vector<VideoMode> supportedInputModes() const override;
+    std::string lastTimecode() const override;
+
     // -- DeckLinkInput-specific --
 
     /// Select the physical connector (SDI / HDMI / AUTO).
@@ -60,11 +76,11 @@ public:
     /// Return the current connector setting.
     DeckLinkConnector connector() const;
 
-    /// Check whether a valid signal is detected on the input.
-    bool hasSignal() const;
+    /// Enable or disable low-latency capture mode.
+    void setLowLatency(bool enabled);
 
-    /// Auto-detect the incoming video mode from the signal.
-    VideoMode detectedMode() const;
+    /// Return true if low-latency mode is enabled.
+    bool lowLatency() const;
 
     /// Enumerate all DeckLink capture devices on the system.
     static std::vector<DeviceConfig> enumerateDevices();

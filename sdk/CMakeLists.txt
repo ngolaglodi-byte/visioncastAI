@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 # --- VisionCast SDK Abstraction Library ---
 set(SDK_SOURCES
     src/video_device.cpp
+    src/sdk_logger.cpp
     src/decklink_device.cpp
     src/decklink_input.cpp
     src/decklink_output.cpp

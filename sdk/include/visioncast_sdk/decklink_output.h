@@ -5,8 +5,11 @@
 ///
 /// Wraps DeckLinkDevice for output-only use cases.
 /// Requires the Blackmagic DeckLink SDK to be installed in sdk/decklink/.
+///
+/// Also implements VideoOutputInterface for unified output access.
 
 #include "visioncast_sdk/video_device.h"
+#include "visioncast_sdk/video_output_interface.h"
 #include "visioncast_sdk/decklink_input.h"   // DeckLinkConnector enum
 
 #include <memory>
@@ -24,7 +27,8 @@ enum class DeckLinkReference {
 ///
 /// Supports 1080p and 4K output over SDI or HDMI connectors.
 /// Implements the IVideoDevice interface restricted to playout operations.
-class DeckLinkOutput : public IVideoDevice {
+/// Also implements VideoOutputInterface for unified output access.
+class DeckLinkOutput : public IVideoDevice, public VideoOutputInterface {
 public:
     DeckLinkOutput();
     ~DeckLinkOutput() override;
@@ -53,6 +57,15 @@ public:
     void setVideoMode(const VideoMode& mode) override;
     VideoMode currentMode() const override;
 
+    // -- VideoOutputInterface --
+    bool openOutput(const DeviceConfig& config) override;
+    void closeOutput() override;
+    bool isOutputOpen() const override;
+    bool isOutputActive() const override;
+    std::string outputDeviceName() const override;
+    std::vector<VideoMode> supportedOutputModes() const override;
+    void setOutputTimecode(const std::string& timecode) override;
+
     // -- DeckLinkOutput-specific --
 
     /// Select the physical connector (SDI / HDMI / AUTO).
@@ -67,8 +80,11 @@ public:
     /// Return the current reference source.
     DeckLinkReference referenceSource() const;
 
-    /// Check whether the output is actively sending frames.
-    bool isOutputActive() const;
+    /// Enable or disable low-latency output mode.
+    void setLowLatency(bool enabled);
+
+    /// Return true if low-latency mode is enabled.
+    bool lowLatency() const;
 
     /// Enumerate all DeckLink playout devices on the system.
     static std::vector<DeviceConfig> enumerateDevices();
