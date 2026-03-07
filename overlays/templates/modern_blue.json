@@ -3,9 +3,9 @@
   "description": "Modern blue-accent lower-third with slide-up entry",
   "style": {
     "background_opacity": 0.75,
-    "background_color": [140, 80, 20],
+    "background_color": [20, 80, 140],
     "text_color": [255, 255, 255],
-    "subtitle_color": [230, 180, 100],
+    "subtitle_color": [100, 180, 230],
     "font_scale": 1.1,
     "thickness": 2,
     "band_height_ratio": 0.14,

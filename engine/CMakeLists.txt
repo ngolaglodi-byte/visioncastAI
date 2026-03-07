@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
+include(FetchContent)
+
 # --- Dependencies ---
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig QUIET)
@@ -7,6 +9,23 @@ find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
     pkg_check_modules(ZMQ libzmq)
     pkg_check_modules(FREETYPE freetype2)
+    # FFmpeg (>= 6.0) — optional, enables hardware-accelerated encode/decode
+    pkg_check_modules(AVCODEC  libavcodec)
+    pkg_check_modules(AVFORMAT libavformat)
+    pkg_check_modules(AVUTIL   libavutil)
+    pkg_check_modules(SWSCALE  libswscale)
+endif()
+
+# nlohmann/json — prefer an installed system copy, fall back to FetchContent
+find_package(nlohmann_json 3.11 QUIET)
+if(NOT nlohmann_json_FOUND)
+    message(STATUS "nlohmann/json not found via find_package — fetching via FetchContent")
+    FetchContent_Declare(
+        nlohmann_json
+        URL      https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+        URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
 # Optional: OpenGL + GLFW + GLEW for GPU pipeline
@@ -53,6 +72,29 @@ if(FREETYPE_FOUND)
     target_link_libraries(visioncast_engine_lib PUBLIC ${FREETYPE_LIBRARIES})
     target_include_directories(visioncast_engine_lib PUBLIC ${FREETYPE_INCLUDE_DIRS})
     target_compile_definitions(visioncast_engine_lib PUBLIC HAS_FREETYPE=1)
+endif()
+
+# nlohmann/json
+target_link_libraries(visioncast_engine_lib PUBLIC nlohmann_json::nlohmann_json)
+
+# FFmpeg (>= 6.0): libavcodec, libavformat, libavutil, libswscale
+if(AVCODEC_FOUND AND AVFORMAT_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
+    target_link_libraries(visioncast_engine_lib PUBLIC
+        ${AVCODEC_LIBRARIES}
+        ${AVFORMAT_LIBRARIES}
+        ${AVUTIL_LIBRARIES}
+        ${SWSCALE_LIBRARIES}
+    )
+    target_include_directories(visioncast_engine_lib PUBLIC
+        ${AVCODEC_INCLUDE_DIRS}
+        ${AVFORMAT_INCLUDE_DIRS}
+        ${AVUTIL_INCLUDE_DIRS}
+        ${SWSCALE_INCLUDE_DIRS}
+    )
+    target_compile_definitions(visioncast_engine_lib PUBLIC HAS_FFMPEG=1)
+    message(STATUS "VisionEngine: FFmpeg enabled (avcodec, avformat, avutil, swscale)")
+else()
+    message(STATUS "VisionEngine: FFmpeg not found — hardware encode/decode unavailable")
 endif()
 
 # GPU pipeline: OpenGL + GLFW + GLEW

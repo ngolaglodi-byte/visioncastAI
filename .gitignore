@@ -152,7 +152,16 @@ temp/
 *.bak
 *.cache
 
-# ----- Coverage & Testing -----
+# ----- CPack Packages -----
+_CPack_Packages/
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+CPackConfig.cmake
+CPackSourceConfig.cmake
+
+
 htmlcov/
 .coverage
 .coverage.*

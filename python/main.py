@@ -1,11 +1,27 @@
+import logging
 import os
+import sys
+import time
+
 import cv2
 import face_recognition
 import json
-import time
 import numpy as np
 
-# Charger la base talents
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[VisionCast] %(levelname)s %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Talent database
+# ---------------------------------------------------------------------------
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(BASE_DIR, ".."))
 TALENTS_PATH = os.path.join(PROJECT_ROOT, "talents", "talents.json")
@@ -31,7 +47,8 @@ for t in TALENTS:
         KNOWN_ENCODINGS.append(enc[0])
         KNOWN_METADATA.append(t)
 
-print("[VisionCast] Base talents chargée.")
+logger.info("Base talents chargée.")
+
 
 def draw_lower_third(frame, title, subtitle):
     h, w, _ = frame.shape
@@ -49,47 +66,67 @@ def draw_lower_third(frame, title, subtitle):
 
     return frame
 
-# Timer state per talent: maps talent index -> timestamp when lower third was first shown
-_lower_third_timers = {}
 
-cap = cv2.VideoCapture(0)
+def run():
+    """Main capture and recognition loop."""
+    # Timer state per talent: maps talent index -> timestamp when lower third
+    # was first shown.
+    _lower_third_timers = {}
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        logger.error("Cannot open camera device 0. Exiting.")
+        sys.exit(1)
 
-    rgb = frame[:, :, ::-1]
+    logger.info("Camera opened. Press ESC to quit.")
 
-    # Détection des visages
-    locations = face_recognition.face_locations(rgb)
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                logger.warning("Failed to read frame from camera. Stopping.")
+                break
 
-    # Encodage stable (compatible Python 3.11 + dlib)
-    encodings = face_recognition.face_encodings(rgb, locations)
+            rgb = frame[:, :, ::-1]
 
-    now = time.monotonic()
+            # Détection des visages
+            locations = face_recognition.face_locations(rgb)
 
-    for enc in encodings:
-        matches = face_recognition.compare_faces(KNOWN_ENCODINGS, enc, tolerance=0.45)
-        if True in matches:
-            idx = matches.index(True)
-            t = KNOWN_METADATA[idx]
+            # Encodage stable (compatible Python 3.11 + dlib)
+            encodings = face_recognition.face_encodings(rgb, locations)
 
-            # Start timer on first detection, show lower third for the configured duration
-            if idx not in _lower_third_timers:
-                _lower_third_timers[idx] = now
+            now = time.monotonic()
 
-            elapsed = now - _lower_third_timers[idx]
-            if elapsed < LOWER_THIRD_DURATION_SEC:
-                frame = draw_lower_third(frame, t["name"], t["role"])
-            else:
-                # Timer expired — remove entry so it can re-trigger later
-                del _lower_third_timers[idx]
+            for enc in encodings:
+                matches = face_recognition.compare_faces(KNOWN_ENCODINGS, enc, tolerance=0.45)
+                if True in matches:
+                    idx = matches.index(True)
+                    t = KNOWN_METADATA[idx]
 
-    cv2.imshow("VisionCast AI - MVP", frame)
+                    # Start timer on first detection, show lower third for
+                    # the configured duration.
+                    if idx not in _lower_third_timers:
+                        _lower_third_timers[idx] = now
 
-    if cv2.waitKey(1) & 0xFF == 27:
-        break
+                    elapsed = now - _lower_third_timers[idx]
+                    if elapsed < LOWER_THIRD_DURATION_SEC:
+                        frame = draw_lower_third(frame, t["name"], t["role"])
+                    else:
+                        # Timer expired — remove entry so it can re-trigger later
+                        del _lower_third_timers[idx]
 
-cap.release()
-cv2.destroyAllWindows()
+            cv2.imshow("VisionCast AI - MVP", frame)
+
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
+
+    except Exception:
+        logger.exception("Unexpected error in capture loop.")
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        logger.info("Camera released. Exiting.")
+
+
+if __name__ == "__main__":
+    run()
