@@ -1,5 +1,6 @@
 """Face matching against the known talent database."""
 
+import logging
 from typing import Optional
 
 import numpy as np
@@ -10,6 +11,8 @@ except ImportError:
     face_recognition = None
 
 from .talent_db import TalentDB
+
+logger = logging.getLogger(__name__)
 
 
 class FaceMatcher:
@@ -32,6 +35,9 @@ class FaceMatcher:
     def match(self, encoding: np.ndarray) -> Optional[dict]:
         """Match a face encoding against the talent database.
 
+        Uses ``face_distance`` to find the talent with the smallest
+        distance and applies the configurable tolerance threshold.
+
         Args:
             encoding: 128-d face encoding numpy array.
 
@@ -41,12 +47,30 @@ class FaceMatcher:
         if not self.talent_db.encodings:
             return None
 
-        matches = face_recognition.compare_faces(
-            self.talent_db.encodings, encoding, tolerance=self.tolerance
+        distances = face_recognition.face_distance(
+            self.talent_db.encodings, encoding
         )
-        if True in matches:
-            idx = matches.index(True)
-            return self.talent_db.get_talent(idx)
+        best_idx = int(np.argmin(distances))
+        best_distance = float(distances[best_idx])
+
+        if best_distance <= self.tolerance:
+            talent = self.talent_db.get_talent(best_idx)
+            confidence = 1.0 - best_distance
+            logger.info(
+                "Match: %s (distance=%.4f, confidence=%.4f, "
+                "threshold=%.4f)",
+                talent.get("name", "unknown"),
+                best_distance,
+                confidence,
+                self.tolerance,
+            )
+            return talent
+
+        logger.debug(
+            "No match: best_distance=%.4f exceeds threshold=%.4f",
+            best_distance,
+            self.tolerance,
+        )
         return None
 
     def match_with_confidence(self, encoding: np.ndarray) -> tuple:
@@ -65,9 +89,24 @@ class FaceMatcher:
             self.talent_db.encodings, encoding
         )
         best_idx = int(np.argmin(distances))
-        best_distance = distances[best_idx]
+        best_distance = float(distances[best_idx])
 
         if best_distance <= self.tolerance:
             confidence = 1.0 - best_distance
-            return self.talent_db.get_talent(best_idx), confidence
+            talent = self.talent_db.get_talent(best_idx)
+            logger.info(
+                "Match: %s (distance=%.4f, confidence=%.4f, "
+                "threshold=%.4f)",
+                talent.get("name", "unknown"),
+                best_distance,
+                confidence,
+                self.tolerance,
+            )
+            return talent, confidence
+
+        logger.debug(
+            "No match: best_distance=%.4f exceeds threshold=%.4f",
+            best_distance,
+            self.tolerance,
+        )
         return None, 0.0

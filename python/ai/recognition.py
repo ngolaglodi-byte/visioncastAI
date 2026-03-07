@@ -4,6 +4,7 @@ Orchestrates detection, encoding, and matching into a single callable
 pipeline optimized for real-time broadcast with multi-person tracking.
 """
 
+import logging
 import time
 from typing import Dict, List, Optional, Tuple
 
@@ -17,6 +18,8 @@ except ImportError:
 from .detection import Detection
 from .encoding import Encoding
 from .talents_loader import TalentsLoader
+
+logger = logging.getLogger(__name__)
 
 
 class _TrackedFace:
@@ -181,8 +184,22 @@ class Recognition:
             if best_dist <= self.tolerance:
                 confidence = 1.0 - best_dist
                 talent = self.talents_loader.get_talent(best_idx)
+                logger.info(
+                    "Match: %s (distance=%.4f, confidence=%.4f, "
+                    "threshold=%.4f)",
+                    talent.get("name", "unknown"),
+                    best_dist,
+                    confidence,
+                    self.tolerance,
+                )
                 results.append((talent, confidence))
             else:
+                logger.debug(
+                    "No match: best_distance=%.4f exceeds "
+                    "threshold=%.4f",
+                    best_dist,
+                    self.tolerance,
+                )
                 results.append((None, 0.0))
         return results
 
