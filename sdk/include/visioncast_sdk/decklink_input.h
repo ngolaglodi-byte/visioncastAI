@@ -11,6 +11,10 @@
 #include "visioncast_sdk/video_device.h"
 #include "visioncast_sdk/video_input_interface.h"
 
+#ifdef HAS_DECKLINK
+#include <DeckLinkAPI.h>
+#endif
+
 #include <functional>
 #include <memory>
 #include <string>

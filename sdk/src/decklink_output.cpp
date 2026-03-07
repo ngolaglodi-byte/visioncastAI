@@ -7,9 +7,15 @@
 #include "visioncast_sdk/decklink_output.h"
 #include "visioncast_sdk/sdk_error.h"
 #include "visioncast_sdk/sdk_logger.h"
+#include "decklink_helpers.h"
 
-#include <iostream>
+#include <cstdio>
+#include <cstring>
 #include <mutex>
+
+#ifdef HAS_DECKLINK
+#include <objbase.h>
+#endif
 
 static const char* TAG = "DeckLinkOutput";
 
@@ -23,11 +29,12 @@ struct DeckLinkOutput::Impl {
     DeckLinkReference reference = DeckLinkReference::FREE_RUN;
     std::string outputTimecode;
     std::mutex mutex;
+    BMDTimeValue frameCounter = 0;  // running frame clock for scheduling
 
 #ifdef HAS_DECKLINK
-    // IDeckLink*              deckLink       = nullptr;
-    // IDeckLinkOutput*        deckLinkOutput = nullptr;
-    // IDeckLinkConfiguration* config         = nullptr;
+    IDeckLink*              deckLink       = nullptr;
+    IDeckLinkOutput*        deckLinkOutput = nullptr;
+    IDeckLinkConfiguration* config         = nullptr;
 #endif
 };
 
@@ -40,24 +47,34 @@ bool DeckLinkOutput::open(const DeviceConfig& config) {
     SDKLogger::info(TAG, "Opening DeckLink playout device index=" +
                          std::to_string(config.deviceIndex));
     try {
+        CoInitialize(nullptr);
+
         // --- DeckLink SDK initialisation ---
-        // IDeckLinkIterator* iterator = CreateDeckLinkIteratorInstance();
-        // if (!iterator) throw DeckLinkError("DeckLink drivers not installed");
-        //
-        // IDeckLink* deckLink = nullptr;
-        // for (int i = 0; i <= config.deviceIndex; ++i) {
-        //     if (iterator->Next(&deckLink) != S_OK)
-        //         throw DeviceNotFoundError("DeckLink device " +
-        //                                   std::to_string(config.deviceIndex));
-        // }
-        // iterator->Release();
-        //
-        // if (deckLink->QueryInterface(IID_IDeckLinkOutput,
-        //         reinterpret_cast<void**>(&impl_->deckLinkOutput)) != S_OK)
-        //     throw DeckLinkError("Device does not support output");
-        //
-        // impl_->deckLink = deckLink;
-        impl_->name = config.name.empty() ? "DeckLink Output" : config.name;
+        IDeckLinkIterator* iterator = CreateDeckLinkIteratorInstance();
+        if (!iterator) throw DeckLinkError("DeckLink drivers not installed");
+
+        IDeckLink* deckLink = nullptr;
+        for (int i = 0; i <= config.deviceIndex; ++i) {
+            if (impl_->deckLink) { impl_->deckLink->Release(); impl_->deckLink = nullptr; }
+            if (iterator->Next(&deckLink) != S_OK)
+                throw DeviceNotFoundError("DeckLink device " +
+                                          std::to_string(config.deviceIndex));
+        }
+        iterator->Release();
+
+        if (deckLink->QueryInterface(IID_IDeckLinkOutput,
+                reinterpret_cast<void**>(&impl_->deckLinkOutput)) != S_OK)
+            throw DeckLinkError("Device does not support output");
+
+        impl_->deckLink = deckLink;
+
+        BSTR nameStr = nullptr;
+        if (deckLink->GetDisplayName(&nameStr) == S_OK && nameStr) {
+            impl_->name = bstrToString(nameStr);
+            SysFreeString(nameStr);
+        } else {
+            impl_->name = config.name.empty() ? "DeckLink Output" : config.name;
+        }
         impl_->isOpen = true;
         SDKLogger::info(TAG, "Device opened: " + impl_->name);
         return true;
@@ -78,13 +95,14 @@ void DeckLinkOutput::close() {
     if (impl_->playing) {
         impl_->playing = false;
 #ifdef HAS_DECKLINK
-        // impl_->deckLinkOutput->StopScheduledPlayback(0, nullptr, 0);
-        // impl_->deckLinkOutput->DisableVideoOutput();
+        impl_->deckLinkOutput->StopScheduledPlayback(0, nullptr, 0);
+        impl_->deckLinkOutput->DisableVideoOutput();
 #endif
     }
 #ifdef HAS_DECKLINK
-    // if (impl_->deckLinkOutput) { impl_->deckLinkOutput->Release(); impl_->deckLinkOutput = nullptr; }
-    // if (impl_->deckLink) { impl_->deckLink->Release(); impl_->deckLink = nullptr; }
+    if (impl_->deckLinkOutput) { impl_->deckLinkOutput->Release(); impl_->deckLinkOutput = nullptr; }
+    if (impl_->deckLink)       { impl_->deckLink->Release();       impl_->deckLink       = nullptr; }
+    CoUninitialize();
 #endif
     impl_->isOpen = false;
     SDKLogger::info(TAG, "Device closed");
@@ -124,16 +142,20 @@ bool DeckLinkOutput::startPlayout(const VideoMode& mode) {
                          std::to_string(mode.frameRate));
     try {
         // --- DeckLink SDK playout start ---
-        // BMDDisplayMode displayMode = resolveBMDMode(mode);
-        // BMDPixelFormat pixFmt = resolveBMDPixelFormat(mode.format);
-        // HRESULT hr = impl_->deckLinkOutput->EnableVideoOutput(displayMode,
-        //     impl_->lowLatency ? bmdVideoOutputFlagLowLatency
-        //                       : bmdVideoOutputFlagDefault);
-        // if (hr != S_OK) throw DeckLinkError("EnableVideoOutput failed", hr);
-        //
-        // hr = impl_->deckLinkOutput->StartScheduledPlayback(0, 100, 1.0);
-        // if (hr != S_OK) throw DeckLinkError("StartScheduledPlayback failed", hr);
+        BMDDisplayMode displayMode = resolveBMDMode(mode);
+        BMDPixelFormat pixFmt = resolveBMDPixelFormat(mode.format);
+        HRESULT hr = impl_->deckLinkOutput->EnableVideoOutput(displayMode,
+            bmdVideoOutputFlagDefault);
+        if (hr != S_OK) throw DeckLinkError("EnableVideoOutput failed", hr);
+
+        BMDTimeValue duration;
+        BMDTimeScale  scale;
+        getFrameTiming(mode.frameRate, duration, scale);
+        hr = impl_->deckLinkOutput->StartScheduledPlayback(0, scale, 1.0);
+        if (hr != S_OK) throw DeckLinkError("StartScheduledPlayback failed", hr);
+
         impl_->currentMode = mode;
+        impl_->frameCounter = 0;
         impl_->playing = true;
         SDKLogger::info(TAG, "Playout started");
         return true;
@@ -151,8 +173,8 @@ bool DeckLinkOutput::stopPlayout() {
     if (!impl_->playing) return true;
     SDKLogger::info(TAG, "Stopping playout");
 #ifdef HAS_DECKLINK
-    // impl_->deckLinkOutput->StopScheduledPlayback(0, nullptr, 0);
-    // impl_->deckLinkOutput->DisableVideoOutput();
+    impl_->deckLinkOutput->StopScheduledPlayback(0, nullptr, 0);
+    impl_->deckLinkOutput->DisableVideoOutput();
 #endif
     impl_->playing = false;
     return true;
@@ -160,24 +182,52 @@ bool DeckLinkOutput::stopPlayout() {
 
 bool DeckLinkOutput::sendFrame(const VideoFrame& frame) {
 #ifdef HAS_DECKLINK
-    // IDeckLinkMutableVideoFrame* dlFrame = nullptr;
-    // HRESULT hr = impl_->deckLinkOutput->CreateVideoFrame(
-    //     frame.width, frame.height, frame.stride,
-    //     resolveBMDPixelFormat(frame.format), bmdFrameFlagDefault, &dlFrame);
-    // if (hr != S_OK) throw DeckLinkError("CreateVideoFrame failed", hr);
-    //
-    // void* buf = nullptr;
-    // dlFrame->GetBytes(&buf);
-    // std::memcpy(buf, frame.data, static_cast<size_t>(frame.stride) * frame.height);
-    //
-    // // Embed timecode if set
-    // if (!impl_->outputTimecode.empty()) {
-    //     // Parse HH:MM:SS:FF and set via dlFrame->SetTimecode(...)
-    // }
-    //
-    // hr = impl_->deckLinkOutput->ScheduleVideoFrame(dlFrame, frame.timestampUs, ...);
-    // dlFrame->Release();
-    // return hr == S_OK;
+    if (!impl_->playing) return false;
+    try {
+        IDeckLinkMutableVideoFrame* dlFrame = nullptr;
+        BMDPixelFormat pixFmt = resolveBMDPixelFormat(frame.format);
+        HRESULT hr = impl_->deckLinkOutput->CreateVideoFrame(
+            frame.width, frame.height, frame.stride,
+            pixFmt, bmdFrameFlagDefault, &dlFrame);
+        if (hr != S_OK || !dlFrame) throw DeckLinkError("CreateVideoFrame failed", hr);
+
+        void* buf = nullptr;
+        dlFrame->GetBytes(&buf);
+        if (buf && frame.data)
+            std::memcpy(buf, frame.data,
+                        static_cast<size_t>(frame.stride) * frame.height);
+
+        // Embed timecode if set
+        if (!impl_->outputTimecode.empty()) {
+            int hh = 0, mm = 0, ss = 0, ff = 0;
+            std::sscanf(impl_->outputTimecode.c_str(),
+                        "%d:%d:%d:%d", &hh, &mm, &ss, &ff);
+            IDeckLinkTimecode* tc = nullptr;
+            if (impl_->deckLinkOutput->CreateTimecode(
+                    bmdTimecodeRP188LTC, &tc) == S_OK && tc) {
+                tc->SetComponents(static_cast<uint8_t>(hh),
+                                  static_cast<uint8_t>(mm),
+                                  static_cast<uint8_t>(ss),
+                                  static_cast<uint8_t>(ff));
+                dlFrame->SetTimecode(bmdTimecodeRP188LTC, tc);
+                tc->Release();
+            }
+        }
+
+        BMDTimeValue duration;
+        BMDTimeScale  scale;
+        getFrameTiming(impl_->currentMode.frameRate, duration, scale);
+        BMDTimeValue displayTime = impl_->frameCounter * duration;
+        hr = impl_->deckLinkOutput->ScheduleVideoFrame(
+                 dlFrame, displayTime, duration, scale);
+        dlFrame->Release();
+        if (hr != S_OK) throw DeckLinkError("ScheduleVideoFrame failed", hr);
+        ++impl_->frameCounter;
+        return true;
+    } catch (const SDKError& e) {
+        SDKLogger::error(TAG, std::string("sendFrame() failed: ") + e.what());
+        return false;
+    }
 #endif
     (void)frame;
     return impl_->playing;
@@ -237,7 +287,41 @@ bool DeckLinkOutput::lowLatency() const {
 
 std::vector<DeviceConfig> DeckLinkOutput::enumerateDevices() {
 #ifdef HAS_DECKLINK
-    // Enumerate using DeckLink SDK iterator (same as DeckLinkInput)
+    std::vector<DeviceConfig> devices;
+    CoInitialize(nullptr);
+    IDeckLinkIterator* it = CreateDeckLinkIteratorInstance();
+    if (!it) {
+        SDKLogger::warn(TAG, "enumerateDevices() — DeckLink drivers not installed");
+        CoUninitialize();
+        return devices;
+    }
+    IDeckLink* dl = nullptr;
+    int idx = 0;
+    while (it->Next(&dl) == S_OK) {
+        // Only include devices that support output
+        IDeckLinkOutput* out = nullptr;
+        if (dl->QueryInterface(IID_IDeckLinkOutput,
+                reinterpret_cast<void**>(&out)) == S_OK) {
+            BSTR nameStr = nullptr;
+            DeviceConfig cfg;
+            cfg.deviceIndex = idx;
+            if (dl->GetDisplayName(&nameStr) == S_OK && nameStr) {
+                cfg.name = bstrToString(nameStr);
+                SysFreeString(nameStr);
+            } else {
+                cfg.name = "DeckLink";
+            }
+            devices.push_back(cfg);
+            out->Release();
+        }
+        dl->Release();
+        ++idx;
+    }
+    it->Release();
+    CoUninitialize();
+    SDKLogger::info(TAG, "enumerateDevices() found " +
+                         std::to_string(devices.size()) + " playout device(s)");
+    return devices;
 #endif
     SDKLogger::debug(TAG, "enumerateDevices() — no SDK, returning empty list");
     return {};

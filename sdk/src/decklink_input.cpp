@@ -7,11 +7,112 @@
 #include "visioncast_sdk/decklink_input.h"
 #include "visioncast_sdk/sdk_error.h"
 #include "visioncast_sdk/sdk_logger.h"
+#include "decklink_helpers.h"
 
-#include <iostream>
+#include <cstring>
 #include <mutex>
+#include <vector>
+
+#ifdef HAS_DECKLINK
+#include <objbase.h>
+#endif
 
 static const char* TAG = "DeckLinkInput";
+
+// ---------------------------------------------------------------------------
+// COM input-callback: stores the most-recently arrived video frame.
+// ---------------------------------------------------------------------------
+#ifdef HAS_DECKLINK
+
+class DeckLinkInputCB final : public IDeckLinkInputCallback {
+public:
+    explicit DeckLinkInputCB() = default;
+
+    // IDeckLinkInputCallback ------------------------------------------------
+    HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(
+        BMDVideoInputFormatChangedEvents /*events*/,
+        IDeckLinkDisplayMode*           /*newMode*/,
+        BMDDetectedVideoInputFormatFlags /*flags*/) override
+    {
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(
+        IDeckLinkVideoInputFrame*  videoFrame,
+        IDeckLinkAudioInputPacket* /*audioPacket*/) override
+    {
+        if (!videoFrame) return S_OK;
+
+        std::lock_guard<std::mutex> lk(frameMutex_);
+        width_  = videoFrame->GetWidth();
+        height_ = videoFrame->GetHeight();
+        stride_ = videoFrame->GetRowBytes();
+
+        buf_.resize(static_cast<size_t>(stride_) * height_);
+        void* src = nullptr;
+        if (videoFrame->GetBytes(&src) == S_OK && src)
+            std::memcpy(buf_.data(), src, buf_.size());
+
+        // Timecode
+        IDeckLinkTimecode* tc = nullptr;
+        if (videoFrame->GetTimecode(bmdTimecodeRP188Any, &tc) == S_OK && tc) {
+            BSTR tcStr = nullptr;
+            if (tc->GetString(&tcStr) == S_OK && tcStr) {
+                lastTimecode_ = bstrToString(tcStr);
+                SysFreeString(tcStr);
+            }
+            tc->Release();
+        }
+        return S_OK;
+    }
+
+    // IUnknown --------------------------------------------------------------
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID* ppv) override {
+        if (!ppv) return E_POINTER;
+        if (iid == IID_IUnknown ||
+            iid == IID_IDeckLinkInputCallback) {
+            *ppv = this; AddRef(); return S_OK;
+        }
+        *ppv = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef()  override { return InterlockedIncrement(&refCount_); }
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG rc = InterlockedDecrement(&refCount_);
+        if (!rc) delete this;
+        return rc;
+    }
+
+    // Accessors -------------------------------------------------------------
+    VideoFrame getLastFrame(PixelFormat fmt) const {
+        std::lock_guard<std::mutex> lk(frameMutex_);
+        VideoFrame f;
+        f.width  = width_;
+        f.height = height_;
+        f.stride = stride_;
+        f.format = fmt;
+        f.data   = const_cast<uint8_t*>(buf_.data());
+        return f;
+    }
+
+    std::string lastTimecode() const {
+        std::lock_guard<std::mutex> lk(frameMutex_);
+        return lastTimecode_;
+    }
+
+private:
+    mutable std::mutex   frameMutex_;
+    std::vector<uint8_t> buf_;
+    int                  width_  = 0;
+    int                  height_ = 0;
+    int                  stride_ = 0;
+    std::string          lastTimecode_;
+    volatile LONG        refCount_ = 1;
+};
+
+#endif // HAS_DECKLINK
+
+// ---------------------------------------------------------------------------
 
 struct DeckLinkInput::Impl {
     bool isOpen = false;
@@ -25,10 +126,10 @@ struct DeckLinkInput::Impl {
     std::mutex mutex;
 
 #ifdef HAS_DECKLINK
-    // DeckLink SDK handles would be stored here:
-    // IDeckLink*             deckLink       = nullptr;
-    // IDeckLinkInput*        deckLinkInput  = nullptr;
-    // IDeckLinkConfiguration* config        = nullptr;
+    IDeckLink*              deckLink      = nullptr;
+    IDeckLinkInput*         deckLinkInput = nullptr;
+    IDeckLinkConfiguration* config        = nullptr;
+    DeckLinkInputCB*        callback      = nullptr;
 #endif
 };
 
@@ -41,24 +142,38 @@ bool DeckLinkInput::open(const DeviceConfig& config) {
     SDKLogger::info(TAG, "Opening DeckLink capture device index=" +
                          std::to_string(config.deviceIndex));
     try {
+        CoInitialize(nullptr);
+
         // --- DeckLink SDK initialisation ---
-        // IDeckLinkIterator* iterator = CreateDeckLinkIteratorInstance();
-        // if (!iterator) throw DeckLinkError("DeckLink drivers not installed");
-        //
-        // IDeckLink* deckLink = nullptr;
-        // for (int i = 0; i <= config.deviceIndex; ++i) {
-        //     if (iterator->Next(&deckLink) != S_OK)
-        //         throw DeviceNotFoundError("DeckLink device " +
-        //                                   std::to_string(config.deviceIndex));
-        // }
-        // iterator->Release();
-        //
-        // if (deckLink->QueryInterface(IID_IDeckLinkInput,
-        //         reinterpret_cast<void**>(&impl_->deckLinkInput)) != S_OK)
-        //     throw DeckLinkError("Device does not support input");
-        //
-        // impl_->deckLink = deckLink;
-        impl_->name = config.name.empty() ? "DeckLink Input" : config.name;
+        IDeckLinkIterator* iterator = CreateDeckLinkIteratorInstance();
+        if (!iterator) throw DeckLinkError("DeckLink drivers not installed");
+
+        IDeckLink* deckLink = nullptr;
+        for (int i = 0; i <= config.deviceIndex; ++i) {
+            if (impl_->deckLink) { impl_->deckLink->Release(); impl_->deckLink = nullptr; }
+            if (iterator->Next(&deckLink) != S_OK)
+                throw DeviceNotFoundError("DeckLink device " +
+                                          std::to_string(config.deviceIndex));
+        }
+        iterator->Release();
+
+        if (deckLink->QueryInterface(IID_IDeckLinkInput,
+                reinterpret_cast<void**>(&impl_->deckLinkInput)) != S_OK)
+            throw DeckLinkError("Device does not support input");
+
+        impl_->deckLink = deckLink;
+
+        // Create and register the input callback
+        impl_->callback = new DeckLinkInputCB();
+        impl_->deckLinkInput->SetCallback(impl_->callback);
+
+        BSTR nameStr = nullptr;
+        if (deckLink->GetDisplayName(&nameStr) == S_OK && nameStr) {
+            impl_->name = bstrToString(nameStr);
+            SysFreeString(nameStr);
+        } else {
+            impl_->name = config.name.empty() ? "DeckLink Input" : config.name;
+        }
         impl_->isOpen = true;
         SDKLogger::info(TAG, "Device opened: " + impl_->name);
         return true;
@@ -79,13 +194,19 @@ void DeckLinkInput::close() {
     if (impl_->capturing) {
         impl_->capturing = false;
 #ifdef HAS_DECKLINK
-        // impl_->deckLinkInput->StopStreams();
-        // impl_->deckLinkInput->DisableVideoInput();
+        impl_->deckLinkInput->StopStreams();
+        impl_->deckLinkInput->DisableVideoInput();
 #endif
     }
 #ifdef HAS_DECKLINK
-    // if (impl_->deckLinkInput) { impl_->deckLinkInput->Release(); impl_->deckLinkInput = nullptr; }
-    // if (impl_->deckLink) { impl_->deckLink->Release(); impl_->deckLink = nullptr; }
+    if (impl_->deckLinkInput) {
+        impl_->deckLinkInput->SetCallback(nullptr);
+        impl_->deckLinkInput->Release();
+        impl_->deckLinkInput = nullptr;
+    }
+    if (impl_->callback)  { impl_->callback->Release();  impl_->callback  = nullptr; }
+    if (impl_->deckLink)  { impl_->deckLink->Release();  impl_->deckLink  = nullptr; }
+    CoUninitialize();
 #endif
     impl_->isOpen = false;
     SDKLogger::info(TAG, "Device closed");
@@ -120,15 +241,15 @@ bool DeckLinkInput::startCapture(const VideoMode& mode) {
                          std::to_string(mode.frameRate));
     try {
         // --- DeckLink SDK capture start ---
-        // BMDDisplayMode displayMode = resolveBMDMode(mode);
-        // BMDPixelFormat pixFmt = resolveBMDPixelFormat(mode.format);
-        // HRESULT hr = impl_->deckLinkInput->EnableVideoInput(displayMode, pixFmt,
-        //     impl_->lowLatency ? bmdVideoInputEnableLowLatencyOutput
-        //                       : bmdVideoInputFlagDefault);
-        // if (hr != S_OK) throw DeckLinkError("EnableVideoInput failed", hr);
-        //
-        // hr = impl_->deckLinkInput->StartStreams();
-        // if (hr != S_OK) throw DeckLinkError("StartStreams failed", hr);
+        BMDDisplayMode displayMode = resolveBMDMode(mode);
+        BMDPixelFormat pixFmt = resolveBMDPixelFormat(mode.format);
+        HRESULT hr = impl_->deckLinkInput->EnableVideoInput(displayMode, pixFmt,
+            impl_->lowLatency ? bmdVideoInputEnableLowLatencyOutput
+                              : bmdVideoInputFlagDefault);
+        if (hr != S_OK) throw DeckLinkError("EnableVideoInput failed", hr);
+
+        hr = impl_->deckLinkInput->StartStreams();
+        if (hr != S_OK) throw DeckLinkError("StartStreams failed", hr);
         impl_->currentMode = mode;
         impl_->capturing = true;
         SDKLogger::info(TAG, "Capture started");
@@ -147,8 +268,8 @@ bool DeckLinkInput::stopCapture() {
     if (!impl_->capturing) return true;
     SDKLogger::info(TAG, "Stopping capture");
 #ifdef HAS_DECKLINK
-    // impl_->deckLinkInput->StopStreams();
-    // impl_->deckLinkInput->DisableVideoInput();
+    impl_->deckLinkInput->StopStreams();
+    impl_->deckLinkInput->DisableVideoInput();
 #endif
     impl_->capturing = false;
     return true;
@@ -156,28 +277,15 @@ bool DeckLinkInput::stopCapture() {
 
 VideoFrame DeckLinkInput::captureFrame() {
 #ifdef HAS_DECKLINK
-    // IDeckLinkVideoInputFrame* dlFrame = nullptr;
-    // HRESULT hr = impl_->deckLinkInput->GetLastFrame(&dlFrame);
-    // if (hr != S_OK || !dlFrame) throw DeckLinkError("captureFrame failed", hr);
-    //
-    // VideoFrame frame;
-    // frame.width  = dlFrame->GetWidth();
-    // frame.height = dlFrame->GetHeight();
-    // frame.stride = dlFrame->GetRowBytes();
-    // dlFrame->GetBytes(reinterpret_cast<void**>(&frame.data));
-    // frame.format = impl_->currentMode.format;
-    //
-    // // Timecode extraction
-    // IDeckLinkTimecode* tc = nullptr;
-    // if (dlFrame->GetTimecode(bmdTimecodeRP188Any, &tc) == S_OK && tc) {
-    //     const char* tcStr = nullptr;
-    //     tc->GetString(&tcStr);
-    //     if (tcStr) impl_->lastTimecode = tcStr;
-    //     tc->Release();
-    // }
-    //
-    // dlFrame->Release();
-    // return frame;
+    if (!impl_->callback) {
+        SDKLogger::debug(TAG, "captureFrame() — callback not registered");
+        return VideoFrame{};
+    }
+    // The callback stores a copy of the last frame delivered by the SDK.
+    VideoFrame frame = impl_->callback->getLastFrame(impl_->currentMode.format);
+    // Update cached timecode from the callback
+    impl_->lastTimecode = impl_->callback->lastTimecode();
+    return frame;
 #endif
     SDKLogger::debug(TAG, "captureFrame() — no SDK, returning empty frame");
     return VideoFrame{};
@@ -223,16 +331,26 @@ DeckLinkConnector DeckLinkInput::connector() const {
 
 bool DeckLinkInput::hasSignal() const {
 #ifdef HAS_DECKLINK
-    // BMDDetectedVideoInputFormatFlags flags;
-    // return impl_->deckLinkInput->GetCurrentDetectedVideoInputMode(
-    //            nullptr, &flags, nullptr) == S_OK;
+    if (!impl_->deckLinkInput) return false;
+    BMDDetectedVideoInputFormatFlags flags;
+    BOOL interlaced = FALSE;
+    BMDDisplayMode detectedMode = bmdModeUnknown;
+    return impl_->deckLinkInput->GetCurrentDetectedVideoInputMode(
+               &detectedMode, &flags, &interlaced) == S_OK;
 #endif
     return false;
 }
 
 VideoMode DeckLinkInput::detectedMode() const {
 #ifdef HAS_DECKLINK
-    // Query the DeckLink SDK for the current input format
+    if (!impl_->deckLinkInput) return VideoMode{};
+    BMDDetectedVideoInputFormatFlags flags;
+    BOOL interlaced = FALSE;
+    BMDDisplayMode bmdMode = bmdModeUnknown;
+    if (impl_->deckLinkInput->GetCurrentDetectedVideoInputMode(
+            &bmdMode, &flags, &interlaced) == S_OK) {
+        return bmdModeToVideoMode(bmdMode, interlaced == TRUE);
+    }
 #endif
     return VideoMode{};
 }
@@ -249,22 +367,41 @@ bool DeckLinkInput::lowLatency() const {
 
 std::vector<DeviceConfig> DeckLinkInput::enumerateDevices() {
 #ifdef HAS_DECKLINK
-    // std::vector<DeviceConfig> devices;
-    // IDeckLinkIterator* it = CreateDeckLinkIteratorInstance();
-    // if (!it) return devices;
-    // IDeckLink* dl = nullptr;
-    // int idx = 0;
-    // while (it->Next(&dl) == S_OK) {
-    //     const char* name = nullptr;
-    //     dl->GetDisplayName(&name);
-    //     DeviceConfig cfg;
-    //     cfg.deviceIndex = idx++;
-    //     cfg.name = name ? name : "DeckLink";
-    //     devices.push_back(cfg);
-    //     dl->Release();
-    // }
-    // it->Release();
-    // return devices;
+    std::vector<DeviceConfig> devices;
+    CoInitialize(nullptr);
+    IDeckLinkIterator* it = CreateDeckLinkIteratorInstance();
+    if (!it) {
+        SDKLogger::warn(TAG, "enumerateDevices() — DeckLink drivers not installed");
+        CoUninitialize();
+        return devices;
+    }
+    IDeckLink* dl = nullptr;
+    int idx = 0;
+    while (it->Next(&dl) == S_OK) {
+        // Only include devices that support input
+        IDeckLinkInput* inp = nullptr;
+        if (dl->QueryInterface(IID_IDeckLinkInput,
+                reinterpret_cast<void**>(&inp)) == S_OK) {
+            BSTR nameStr = nullptr;
+            DeviceConfig cfg;
+            cfg.deviceIndex = idx;
+            if (dl->GetDisplayName(&nameStr) == S_OK && nameStr) {
+                cfg.name = bstrToString(nameStr);
+                SysFreeString(nameStr);
+            } else {
+                cfg.name = "DeckLink";
+            }
+            devices.push_back(cfg);
+            inp->Release();
+        }
+        dl->Release();
+        ++idx;
+    }
+    it->Release();
+    CoUninitialize();
+    SDKLogger::info(TAG, "enumerateDevices() found " +
+                         std::to_string(devices.size()) + " capture device(s)");
+    return devices;
 #endif
     SDKLogger::debug(TAG, "enumerateDevices() — no SDK, returning empty list");
     return {};

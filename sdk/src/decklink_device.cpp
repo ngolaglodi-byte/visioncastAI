@@ -12,8 +12,13 @@
 #include "visioncast_sdk/decklink_device.h"
 #include "visioncast_sdk/sdk_error.h"
 #include "visioncast_sdk/sdk_logger.h"
+#include "decklink_helpers.h"
 
 #include <mutex>
+
+#ifdef HAS_DECKLINK
+#include <objbase.h>   // CoInitialize / CoUninitialize
+#endif
 
 static const char* TAG = "DeckLinkDevice";
 
@@ -24,10 +29,10 @@ struct DeckLinkDevice::Impl {
     std::mutex mutex;
 
 #ifdef HAS_DECKLINK
-    // IDeckLink*              deckLink = nullptr;
-    // IDeckLinkInput*         input    = nullptr;
-    // IDeckLinkOutput*        output   = nullptr;
-    // IDeckLinkConfiguration* config   = nullptr;
+    IDeckLink*              deckLink = nullptr;
+    IDeckLinkInput*         input    = nullptr;
+    IDeckLinkOutput*        output   = nullptr;
+    IDeckLinkConfiguration* config   = nullptr;
 #endif
 };
 
@@ -40,26 +45,36 @@ bool DeckLinkDevice::open(const DeviceConfig& config) {
     SDKLogger::info(TAG, "Opening DeckLink device index=" +
                          std::to_string(config.deviceIndex));
     try {
+        CoInitialize(nullptr);
+
         // --- DeckLink SDK initialisation ---
-        // IDeckLinkIterator* iterator = CreateDeckLinkIteratorInstance();
-        // if (!iterator) throw DeckLinkError("DeckLink drivers not installed");
-        //
-        // IDeckLink* deckLink = nullptr;
-        // for (int i = 0; i <= config.deviceIndex; ++i) {
-        //     if (iterator->Next(&deckLink) != S_OK)
-        //         throw DeviceNotFoundError("DeckLink device " +
-        //                                   std::to_string(config.deviceIndex));
-        // }
-        // iterator->Release();
-        // impl_->deckLink = deckLink;
-        //
-        // // Query input capability
-        // deckLink->QueryInterface(IID_IDeckLinkInput,
-        //     reinterpret_cast<void**>(&impl_->input));
-        // // Query output capability
-        // deckLink->QueryInterface(IID_IDeckLinkOutput,
-        //     reinterpret_cast<void**>(&impl_->output));
-        impl_->name = config.name.empty() ? "DeckLink" : config.name;
+        IDeckLinkIterator* iterator = CreateDeckLinkIteratorInstance();
+        if (!iterator) throw DeckLinkError("DeckLink drivers not installed");
+
+        IDeckLink* deckLink = nullptr;
+        for (int i = 0; i <= config.deviceIndex; ++i) {
+            if (impl_->deckLink) { impl_->deckLink->Release(); impl_->deckLink = nullptr; }
+            if (iterator->Next(&deckLink) != S_OK)
+                throw DeviceNotFoundError("DeckLink device " +
+                                          std::to_string(config.deviceIndex));
+        }
+        iterator->Release();
+        impl_->deckLink = deckLink;
+
+        // Query input capability (optional — device may be output-only)
+        deckLink->QueryInterface(IID_IDeckLinkInput,
+            reinterpret_cast<void**>(&impl_->input));
+        // Query output capability (optional — device may be input-only)
+        deckLink->QueryInterface(IID_IDeckLinkOutput,
+            reinterpret_cast<void**>(&impl_->output));
+
+        BSTR nameStr = nullptr;
+        if (deckLink->GetDisplayName(&nameStr) == S_OK && nameStr) {
+            impl_->name = bstrToString(nameStr);
+            SysFreeString(nameStr);
+        } else {
+            impl_->name = config.name.empty() ? "DeckLink" : config.name;
+        }
         impl_->isOpen = true;
         SDKLogger::info(TAG, "Device opened: " + impl_->name);
         return true;
@@ -78,9 +93,10 @@ void DeckLinkDevice::close() {
     if (!impl_->isOpen) return;
     SDKLogger::info(TAG, "Closing device: " + impl_->name);
 #ifdef HAS_DECKLINK
-    // if (impl_->input)   { impl_->input->Release();   impl_->input   = nullptr; }
-    // if (impl_->output)  { impl_->output->Release();  impl_->output  = nullptr; }
-    // if (impl_->deckLink){ impl_->deckLink->Release(); impl_->deckLink= nullptr; }
+    if (impl_->input)   { impl_->input->Release();   impl_->input   = nullptr; }
+    if (impl_->output)  { impl_->output->Release();  impl_->output  = nullptr; }
+    if (impl_->deckLink){ impl_->deckLink->Release(); impl_->deckLink= nullptr; }
+    CoUninitialize();
 #endif
     impl_->isOpen = false;
     SDKLogger::info(TAG, "Device closed");
@@ -122,22 +138,34 @@ VideoMode DeckLinkDevice::currentMode() const { return impl_->currentMode; }
 
 std::vector<DeviceConfig> DeckLinkDevice::enumerateDevices() {
 #ifdef HAS_DECKLINK
-    // std::vector<DeviceConfig> devices;
-    // IDeckLinkIterator* it = CreateDeckLinkIteratorInstance();
-    // if (!it) return devices;
-    // IDeckLink* dl = nullptr;
-    // int idx = 0;
-    // while (it->Next(&dl) == S_OK) {
-    //     const char* name = nullptr;
-    //     dl->GetDisplayName(&name);
-    //     DeviceConfig cfg;
-    //     cfg.deviceIndex = idx++;
-    //     cfg.name = name ? name : "DeckLink";
-    //     devices.push_back(cfg);
-    //     dl->Release();
-    // }
-    // it->Release();
-    // return devices;
+    std::vector<DeviceConfig> devices;
+    CoInitialize(nullptr);
+    IDeckLinkIterator* it = CreateDeckLinkIteratorInstance();
+    if (!it) {
+        SDKLogger::warn(TAG, "enumerateDevices() — DeckLink drivers not installed");
+        CoUninitialize();
+        return devices;
+    }
+    IDeckLink* dl = nullptr;
+    int idx = 0;
+    while (it->Next(&dl) == S_OK) {
+        BSTR nameStr = nullptr;
+        DeviceConfig cfg;
+        cfg.deviceIndex = idx++;
+        if (dl->GetDisplayName(&nameStr) == S_OK && nameStr) {
+            cfg.name = bstrToString(nameStr);
+            SysFreeString(nameStr);
+        } else {
+            cfg.name = "DeckLink";
+        }
+        devices.push_back(cfg);
+        dl->Release();
+    }
+    it->Release();
+    CoUninitialize();
+    SDKLogger::info(TAG, "enumerateDevices() found " +
+                         std::to_string(devices.size()) + " device(s)");
+    return devices;
 #endif
     SDKLogger::debug(TAG, "enumerateDevices() — no SDK, returning empty list");
     return {};

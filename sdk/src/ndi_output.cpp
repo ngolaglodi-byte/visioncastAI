@@ -8,8 +8,12 @@
 #include "visioncast_sdk/ndi_output.h"
 #include "visioncast_sdk/sdk_error.h"
 #include "visioncast_sdk/sdk_logger.h"
+#include "ndi_helpers.h"
 
-#include <iostream>
+#ifdef HAS_NDI
+#include <Processing.NDI.Lib.h>
+#endif
+
 #include <mutex>
 
 static const char* TAG = "NDIOutput";
@@ -25,7 +29,7 @@ struct NDIOutput::Impl {
     std::mutex mutex;
 
 #ifdef HAS_NDI
-    // NDIlib_send_instance_t sender = nullptr;
+    NDIlib_send_instance_t sender = nullptr;
 #endif
 };
 
@@ -38,17 +42,18 @@ bool NDIOutput::open(const DeviceConfig& config) {
     SDKLogger::info(TAG, "Opening NDI sender: " + impl_->sourceName);
     try {
         // --- NDI SDK initialisation ---
-        // if (!NDIlib_initialize())
-        //     throw NDIError("NDI runtime not installed");
-        //
-        // NDIlib_send_create_t send_desc;
-        // send_desc.p_ndi_name = impl_->sourceName.c_str();
-        // send_desc.clock_video = true;
-        // send_desc.clock_audio = false;
-        //
-        // impl_->sender = NDIlib_send_create(&send_desc);
-        // if (!impl_->sender)
-        //     throw NDIError("Failed to create NDI sender");
+        if (!NDIlib_initialize())
+            throw NDIError("NDI runtime not installed");
+
+        NDIlib_send_create_t send_desc;
+        send_desc.p_ndi_name  = impl_->sourceName.c_str();
+        send_desc.clock_video = true;
+        send_desc.clock_audio = false;
+
+        impl_->sender = NDIlib_send_create(&send_desc);
+        if (!impl_->sender)
+            throw NDIError("Failed to create NDI sender");
+
         impl_->name = config.name.empty() ? "NDI Output" : config.name;
         impl_->isOpen = true;
         SDKLogger::info(TAG, "Sender opened: " + impl_->name +
@@ -70,8 +75,8 @@ void NDIOutput::close() {
     SDKLogger::info(TAG, "Closing sender: " + impl_->name);
     impl_->playing = false;
 #ifdef HAS_NDI
-    // if (impl_->sender) { NDIlib_send_destroy(impl_->sender); impl_->sender = nullptr; }
-    // NDIlib_destroy();
+    if (impl_->sender) { NDIlib_send_destroy(impl_->sender); impl_->sender = nullptr; }
+    NDIlib_destroy();
 #endif
     impl_->isOpen = false;
     SDKLogger::info(TAG, "Sender closed");
@@ -129,23 +134,29 @@ bool NDIOutput::stopPlayout() {
 
 bool NDIOutput::sendFrame(const VideoFrame& frame) {
 #ifdef HAS_NDI
-    // NDIlib_video_frame_v2_t ndiFrame;
-    // ndiFrame.xres = frame.width;
-    // ndiFrame.yres = frame.height;
-    // ndiFrame.line_stride_in_bytes = frame.stride;
-    // ndiFrame.FourCC = NDIlib_FourCC_type_UYVY;
-    // ndiFrame.p_data = frame.data;
-    // ndiFrame.frame_rate_N = static_cast<int>(impl_->currentMode.frameRate * 1000);
-    // ndiFrame.frame_rate_D = 1000;
-    // ndiFrame.frame_format_type = NDIlib_frame_format_type_progressive;
-    //
-    // // Embed timecode if set
-    // if (!impl_->outputTimecode.empty()) {
-    //     ndiFrame.timecode = parseTimecodeToNDI(impl_->outputTimecode);
-    // }
-    //
-    // NDIlib_send_send_video_v2(impl_->sender, &ndiFrame);
-    // return true;
+    if (!impl_->sender || !impl_->playing) return false;
+
+    NDIlib_video_frame_v2_t ndiFrame;
+    ndiFrame.xres                  = frame.width;
+    ndiFrame.yres                  = frame.height;
+    ndiFrame.line_stride_in_bytes  = frame.stride;
+    ndiFrame.FourCC                = NDIlib_FourCC_type_UYVY;
+    ndiFrame.p_data                = frame.data;
+    ndiFrame.frame_rate_N          = static_cast<int>(impl_->currentMode.frameRate * 1000);
+    ndiFrame.frame_rate_D          = 1000;
+    ndiFrame.frame_format_type     = NDIlib_frame_format_type_progressive;
+    ndiFrame.p_metadata            = nullptr;
+
+    // Embed timecode if set
+    if (!impl_->outputTimecode.empty()) {
+        ndiFrame.timecode = parseTimecodeToNDI(impl_->outputTimecode,
+                                               impl_->currentMode.frameRate);
+    } else {
+        ndiFrame.timecode = NDIlib_send_timecode_synthesize;
+    }
+
+    NDIlib_send_send_video_v2(impl_->sender, &ndiFrame);
+    return true;
 #endif
     (void)frame;
     return impl_->playing;

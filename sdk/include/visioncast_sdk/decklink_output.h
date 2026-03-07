@@ -12,6 +12,10 @@
 #include "visioncast_sdk/video_output_interface.h"
 #include "visioncast_sdk/decklink_input.h"   // DeckLinkConnector enum
 
+#ifdef HAS_DECKLINK
+#include <DeckLinkAPI.h>
+#endif
+
 #include <memory>
 #include <string>
 #include <vector>
