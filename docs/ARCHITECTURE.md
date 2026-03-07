@@ -13,6 +13,20 @@ VisionCast-AI is a professional 4K broadcast production system powered by AI. It
 | **Broadcast Control Room** | Qt-based UI for live mixing, monitoring, and configuration |
 | **Professional I/O** | DeckLink, AJA, Magewell capture/playout + NDI, SRT, RTMP streaming |
 
+### Architecture Diagram (PDF-ready)
+
+A full-colour, professional architecture diagram is available:
+
+- **SVG (vector / PDF-ready):** [`docs/architecture_diagram.svg`](architecture_diagram.svg)
+- **Source (Graphviz DOT):** [`docs/architecture_diagram.dot`](architecture_diagram.dot)
+
+To regenerate the diagram (requires Graphviz):
+
+```bash
+python docs/generate_diagram.py          # SVG + PDF
+python docs/generate_diagram.py --svg    # SVG only
+```
+
 ### High-Level Architecture
 
 ```

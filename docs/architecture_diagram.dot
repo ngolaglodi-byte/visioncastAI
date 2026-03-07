@@ -1,0 +1,420 @@
+// VisionCast-AI — Architecture Diagram (PDF-ready)
+// Generated with Graphviz DOT
+// Colors: Blue=Video, Yellow=IA, Red=Overlays, Green=Filters, Violet=Régie
+
+digraph VisionCastAI {
+
+    // ── Global settings ─────────────────────────────────────────────
+    graph [
+        rankdir=TB,
+        fontname="Helvetica",
+        fontsize=14,
+        bgcolor="white",
+        pad="0.8",
+        nodesep=0.7,
+        ranksep=1.0,
+        label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+                <TR><TD><B><FONT POINT-SIZE="24">VisionCast‑AI — Architecture complète</FONT></B></TD></TR>
+                <TR><TD><FONT POINT-SIZE="13" COLOR="#555555">Système de production broadcast avec IA temps réel</FONT></TD></TR>
+                <TR><TD> </TD></TR>
+            </TABLE>
+        >,
+        labelloc=t,
+        compound=true
+    ];
+    node  [fontname="Helvetica", fontsize=11, style="filled,rounded", shape=box, penwidth=1.5];
+    edge  [fontname="Helvetica", fontsize=9, penwidth=1.5];
+
+    // ════════════════════════════════════════════════════════════════
+    //  ROW 1 — External inputs
+    // ════════════════════════════════════════════════════════════════
+
+    cameras [
+        label=<<B>Caméras</B><BR/><FONT POINT-SIZE="9">SDI / HDMI / NDI</FONT>>,
+        shape=cylinder,
+        fillcolor="#DBEAFE",
+        color="#2563EB",
+        fontcolor="#1E3A5F"
+    ];
+
+    regie_table [
+        label=<<B>Table de régie</B><BR/><FONT POINT-SIZE="9">Mélangeur physique</FONT>>,
+        fillcolor="#DBEAFE",
+        color="#2563EB",
+        fontcolor="#1E3A5F"
+    ];
+
+    cameras -> regie_table [
+        label=<<FONT COLOR="#2563EB">  Flux vidéo brut  </FONT>>,
+        color="#2563EB",
+        penwidth=2.5,
+        arrowsize=1.2
+    ];
+
+    // ════════════════════════════════════════════════════════════════
+    //  ROW 2 — SDK Broadcast (input devices)
+    // ════════════════════════════════════════════════════════════════
+
+    subgraph cluster_sdk {
+        label=<<B>SDK Broadcast</B>>;
+        style="filled,rounded";
+        color="#2563EB";
+        fillcolor="#EFF6FF";
+        fontcolor="#1E3A5F";
+        fontsize=12;
+        margin=16;
+
+        decklink [
+            label=<<B>DeckLink</B><BR/><FONT POINT-SIZE="9">Input / Output</FONT>>,
+            fillcolor="#93C5FD",
+            color="#2563EB",
+            fontcolor="#1E3A5F"
+        ];
+        aja [
+            label=<<B>AJA</B><BR/><FONT POINT-SIZE="9">Input / Output</FONT>>,
+            fillcolor="#93C5FD",
+            color="#2563EB",
+            fontcolor="#1E3A5F"
+        ];
+        magewell [
+            label=<<B>Magewell</B><BR/><FONT POINT-SIZE="9">Input</FONT>>,
+            fillcolor="#93C5FD",
+            color="#2563EB",
+            fontcolor="#1E3A5F"
+        ];
+        ndi [
+            label=<<B>NDI</B><BR/><FONT POINT-SIZE="9">Input / Output</FONT>>,
+            fillcolor="#93C5FD",
+            color="#2563EB",
+            fontcolor="#1E3A5F"
+        ];
+
+        // keep SDK cards in a row
+        decklink -> aja -> magewell -> ndi [style=invis];
+    }
+
+    regie_table -> decklink [
+        label=<<FONT COLOR="#2563EB">  Flux vidéo entrant  </FONT>>,
+        color="#2563EB",
+        penwidth=2.0,
+        lhead=cluster_sdk
+    ];
+
+    // ════════════════════════════════════════════════════════════════
+    //  ROW 3 — VisionCast-AI core system
+    // ════════════════════════════════════════════════════════════════
+
+    subgraph cluster_visioncast {
+        label=<<B><FONT POINT-SIZE="15">VisionCast‑AI</FONT></B>>;
+        style="filled,rounded,bold";
+        color="#1E293B";
+        fillcolor="#F8FAFC";
+        fontsize=15;
+        margin=20;
+
+        // ── 3a. Python IA ───────────────────────────────────────
+        subgraph cluster_python_ia {
+            label=<<B>Module Python IA</B>>;
+            style="filled,rounded";
+            color="#CA8A04";
+            fillcolor="#FFFBEB";
+            fontcolor="#713F12";
+            fontsize=12;
+            margin=14;
+
+            detection [
+                label=<<B>Détection</B><BR/><FONT POINT-SIZE="9">face_recognition / dlib</FONT>>,
+                fillcolor="#FDE68A",
+                color="#CA8A04",
+                fontcolor="#713F12"
+            ];
+            reconnaissance [
+                label=<<B>Reconnaissance</B><BR/><FONT POINT-SIZE="9">Encodage &amp; matching</FONT>>,
+                fillcolor="#FDE68A",
+                color="#CA8A04",
+                fontcolor="#713F12"
+            ];
+            talents_db [
+                label=<<B>talents.json</B><BR/><FONT POINT-SIZE="9">Base de données talents</FONT>>,
+                shape=note,
+                fillcolor="#FEF3C7",
+                color="#CA8A04",
+                fontcolor="#713F12"
+            ];
+
+            detection -> reconnaissance [
+                label=<<FONT COLOR="#CA8A04">  Visages détectés  </FONT>>,
+                color="#CA8A04"
+            ];
+            reconnaissance -> talents_db [
+                label=<<FONT COLOR="#CA8A04">  Lookup  </FONT>>,
+                color="#CA8A04",
+                style=dashed
+            ];
+            talents_db -> reconnaissance [
+                label=<<FONT COLOR="#CA8A04">  Match  </FONT>>,
+                color="#CA8A04",
+                style=dashed
+            ];
+        }
+
+        // ── 3b. ZeroMQ IPC ──────────────────────────────────────
+        subgraph cluster_zeromq {
+            label=<<B>ZeroMQ IPC</B>>;
+            style="filled,rounded";
+            color="#6366F1";
+            fillcolor="#EEF2FF";
+            fontcolor="#3730A3";
+            fontsize=12;
+            margin=14;
+
+            zmq_pub [
+                label=<<B>PUB</B><BR/><FONT POINT-SIZE="9">Python → C++</FONT>>,
+                fillcolor="#C7D2FE",
+                color="#6366F1",
+                fontcolor="#3730A3"
+            ];
+            zmq_sub [
+                label=<<B>SUB</B><BR/><FONT POINT-SIZE="9">tcp://127.0.0.1:5555</FONT>>,
+                fillcolor="#C7D2FE",
+                color="#6366F1",
+                fontcolor="#3730A3"
+            ];
+
+            zmq_pub -> zmq_sub [
+                label=<<FONT COLOR="#6366F1">  Métadonnées IA  </FONT>>,
+                color="#6366F1",
+                penwidth=2.0
+            ];
+        }
+
+        // ── 3c. Moteur vidéo C++ ────────────────────────────────
+        subgraph cluster_engine {
+            label=<<B>Moteur vidéo C++</B>>;
+            style="filled,rounded";
+            color="#2563EB";
+            fillcolor="#EFF6FF";
+            fontcolor="#1E3A5F";
+            fontsize=12;
+            margin=14;
+
+            gpu_pipeline [
+                label=<<B>Pipeline GPU</B><BR/><FONT POINT-SIZE="9">OpenGL 3.3 / OpenCV</FONT>>,
+                fillcolor="#93C5FD",
+                color="#2563EB",
+                fontcolor="#1E3A5F"
+            ];
+            overlays_engine [
+                label=<<B>Overlays</B><BR/><FONT POINT-SIZE="9">Lower thirds, titres</FONT>>,
+                fillcolor="#FCA5A5",
+                color="#DC2626",
+                fontcolor="#7F1D1D"
+            ];
+            filtres_globaux [
+                label=<<B>Filtres globaux</B><BR/><FONT POINT-SIZE="9">LUT · sharpen · HDR<BR/>noise reduction · contraste</FONT>>,
+                fillcolor="#BBF7D0",
+                color="#16A34A",
+                fontcolor="#14532D"
+            ];
+            timer [
+                label=<<B>Timer</B><BR/><FONT POINT-SIZE="9">Durée d'affichage</FONT>>,
+                fillcolor="#FCA5A5",
+                color="#DC2626",
+                fontcolor="#7F1D1D"
+            ];
+
+            // Internal engine connections
+            overlays_engine -> gpu_pipeline [
+                label=<<FONT COLOR="#DC2626">  Overlays appliqués  </FONT>>,
+                color="#DC2626"
+            ];
+            filtres_globaux -> gpu_pipeline [
+                label=<<FONT COLOR="#16A34A">  Filtres appliqués  </FONT>>,
+                color="#16A34A"
+            ];
+            timer -> overlays_engine [
+                label=<<FONT COLOR="#DC2626">  Durée  </FONT>>,
+                color="#DC2626",
+                style=dashed
+            ];
+        }
+
+        // ── 3d. Régie Qt ────────────────────────────────────────
+        subgraph cluster_qt {
+            label=<<B>Régie Qt (UI)</B>>;
+            style="filled,rounded";
+            color="#7C3AED";
+            fillcolor="#F5F3FF";
+            fontcolor="#4C1D95";
+            fontsize=12;
+            margin=14;
+
+            main_window [
+                label=<<B>MainWindow</B><BR/><FONT POINT-SIZE="9">Interface principale</FONT>>,
+                fillcolor="#DDD6FE",
+                color="#7C3AED",
+                fontcolor="#4C1D95"
+            ];
+            preview_panel [
+                label=<<B>Preview</B><BR/><FONT POINT-SIZE="9">Moniteur temps réel</FONT>>,
+                fillcolor="#DDD6FE",
+                color="#7C3AED",
+                fontcolor="#4C1D95"
+            ];
+            overlay_editor [
+                label=<<B>Éditeur overlays</B><BR/><FONT POINT-SIZE="9">Templates &amp; styles</FONT>>,
+                fillcolor="#DDD6FE",
+                color="#7C3AED",
+                fontcolor="#4C1D95"
+            ];
+            talent_manager [
+                label=<<B>Gestion talents</B><BR/><FONT POINT-SIZE="9">CRUD talents</FONT>>,
+                fillcolor="#DDD6FE",
+                color="#7C3AED",
+                fontcolor="#4C1D95"
+            ];
+            output_config [
+                label=<<B>Config sortie</B><BR/><FONT POINT-SIZE="9">Résolution, format</FONT>>,
+                fillcolor="#DDD6FE",
+                color="#7C3AED",
+                fontcolor="#4C1D95"
+            ];
+
+            main_window -> preview_panel [style=invis];
+            main_window -> overlay_editor [style=invis];
+            main_window -> talent_manager [style=invis];
+            main_window -> output_config [style=invis];
+        }
+
+        // ── Cross-module connections inside VisionCast-AI ───────
+
+        // IA → ZeroMQ
+        reconnaissance -> zmq_pub [
+            label=<<FONT COLOR="#6366F1">  Envoi métadonnées  </FONT>>,
+            color="#6366F1",
+            penwidth=2.0
+        ];
+
+        // ZeroMQ → Engine overlays
+        zmq_sub -> overlays_engine [
+            label=<<FONT COLOR="#DC2626">  Données talent  </FONT>>,
+            color="#DC2626",
+            penwidth=2.0
+        ];
+
+        // Qt controls
+        main_window -> gpu_pipeline [
+            label=<<FONT COLOR="#7C3AED">  Contrôle  </FONT>>,
+            color="#7C3AED",
+            style=dashed
+        ];
+        overlay_editor -> overlays_engine [
+            label=<<FONT COLOR="#7C3AED">  Config overlays  </FONT>>,
+            color="#7C3AED",
+            style=dashed
+        ];
+        talent_manager -> talents_db [
+            label=<<FONT COLOR="#7C3AED">  Gestion  </FONT>>,
+            color="#7C3AED",
+            style=dashed
+        ];
+        preview_panel -> gpu_pipeline [
+            label=<<FONT COLOR="#7C3AED">  Preview  </FONT>>,
+            color="#7C3AED",
+            style=dashed
+        ];
+    }
+
+    // SDK → Engine
+    decklink -> gpu_pipeline [
+        label=<<FONT COLOR="#2563EB">  Capture  </FONT>>,
+        color="#2563EB",
+        penwidth=2.0,
+        ltail=cluster_sdk,
+        lhead=cluster_engine
+    ];
+
+    // Engine feeds IA
+    gpu_pipeline -> detection [
+        label=<<FONT COLOR="#CA8A04">  Frame vidéo  </FONT>>,
+        color="#CA8A04",
+        penwidth=2.0
+    ];
+
+    // ════════════════════════════════════════════════════════════════
+    //  ROW 4 — Output
+    // ════════════════════════════════════════════════════════════════
+
+    sortie [
+        label=<<B>Sortie finale</B><BR/><FONT POINT-SIZE="9">SDI / NDI / SRT / RTMP</FONT>>,
+        shape=doubleoctagon,
+        fillcolor="#DBEAFE",
+        color="#2563EB",
+        fontcolor="#1E3A5F"
+    ];
+
+    gpu_pipeline -> sortie [
+        label=<<FONT COLOR="#2563EB">  Flux vidéo sortant  </FONT>>,
+        color="#2563EB",
+        penwidth=3.0,
+        arrowsize=1.4
+    ];
+
+    output_config -> sortie [
+        label=<<FONT COLOR="#7C3AED">  Config sortie  </FONT>>,
+        color="#7C3AED",
+        style=dashed
+    ];
+
+    // ════════════════════════════════════════════════════════════════
+    //  LEGEND
+    // ════════════════════════════════════════════════════════════════
+
+    subgraph cluster_legend {
+        label=<<B><FONT POINT-SIZE="13">Légende</FONT></B>>;
+        style="filled,rounded";
+        color="#94A3B8";
+        fillcolor="#F1F5F9";
+        fontsize=13;
+        fontcolor="#334155";
+        margin=12;
+
+        node [shape=box, width=2.0, height=0.45, fontsize=11];
+
+        leg_video [label=<<B>Bleu</B> — Vidéo>,            fillcolor="#93C5FD", color="#2563EB", fontcolor="#1E3A5F"];
+        leg_ia    [label=<<B>Jaune</B> — IA>,              fillcolor="#FDE68A", color="#CA8A04", fontcolor="#713F12"];
+        leg_over  [label=<<B>Rouge</B> — Overlays>,        fillcolor="#FCA5A5", color="#DC2626", fontcolor="#7F1D1D"];
+        leg_filt  [label=<<B>Vert</B> — Filtres>,          fillcolor="#BBF7D0", color="#16A34A", fontcolor="#14532D"];
+        leg_regie [label=<<B>Violet</B> — Régie>,          fillcolor="#DDD6FE", color="#7C3AED", fontcolor="#4C1D95"];
+        leg_ipc   [label=<<B>Indigo</B> — IPC (ZeroMQ)>,   fillcolor="#C7D2FE", color="#6366F1", fontcolor="#3730A3"];
+
+        leg_video -> leg_ia -> leg_over -> leg_filt -> leg_regie -> leg_ipc [style=invis];
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  WORKFLOW (bottom annotation)
+    // ════════════════════════════════════════════════════════════════
+
+    subgraph cluster_workflow {
+        label=<<B><FONT POINT-SIZE="13">Workflow complet</FONT></B>>;
+        style="filled,rounded";
+        color="#94A3B8";
+        fillcolor="#F1F5F9";
+        fontsize=13;
+        fontcolor="#334155";
+        margin=12;
+
+        node [shape=box, width=1.6, height=0.4, fontsize=10, style="filled,rounded"];
+
+        wf1 [label="① Détection",          fillcolor="#FDE68A", color="#CA8A04", fontcolor="#713F12"];
+        wf2 [label="② Reconnaissance",     fillcolor="#FDE68A", color="#CA8A04", fontcolor="#713F12"];
+        wf3 [label="③ Envoi métadonnées",  fillcolor="#C7D2FE", color="#6366F1", fontcolor="#3730A3"];
+        wf4 [label="④ Affichage overlay",  fillcolor="#FCA5A5", color="#DC2626", fontcolor="#7F1D1D"];
+        wf5 [label="⑤ Timer",              fillcolor="#FCA5A5", color="#DC2626", fontcolor="#7F1D1D"];
+        wf6 [label="⑥ Sortie broadcast",   fillcolor="#93C5FD", color="#2563EB", fontcolor="#1E3A5F"];
+
+        wf1 -> wf2 -> wf3 -> wf4 -> wf5 -> wf6 [color="#64748B", penwidth=1.5, arrowsize=0.8];
+    }
+}
+
