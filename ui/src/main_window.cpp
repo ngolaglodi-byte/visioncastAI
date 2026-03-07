@@ -19,14 +19,25 @@
 #include "visioncast_ui/design_panel.h"
 #include "visioncast_ui/recognition_panel.h"
 #include "visioncast_ui/device_scanner.h"
+#include "visioncast_ui/license_manager.h"
+#include "visioncast_ui/license_dialog.h"
 
 namespace visioncast_ui {
 
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent) {
+    : QMainWindow(parent)
+    , licenseManager_(new LicenseManager(this))
+{
+    if (!licenseManager_->loadConfig(QStringLiteral("config/license.json")))
+        qWarning("License config not loaded – check config/license.json");
+
     setupMenuBar();
     setupDockWidgets();
     statusBar()->showMessage("Ready");
+
+    // Silently validate cached license key on startup.
+    if (!licenseManager_->licenseKey().isEmpty())
+        licenseManager_->validateKey(licenseManager_->licenseKey());
 }
 
 MainWindow::~MainWindow() = default;
@@ -50,6 +61,9 @@ void MainWindow::setupMenuBar() {
     auto* broadcastMenu = menuBar()->addMenu("&Broadcast");
     broadcastMenu->addAction("&Go Live", this, &MainWindow::onGoLive);
     broadcastMenu->addAction("&Stop", this, &MainWindow::onStopBroadcast);
+
+    auto* helpMenu = menuBar()->addMenu("&Help");
+    helpMenu->addAction("&Manage License…", this, &MainWindow::onManageLicense);
 }
 
 void MainWindow::setupDockWidgets() {
@@ -144,6 +158,15 @@ void MainWindow::onThemeSelected(const QString& themeName) {
     const QString& qssFile = (themeName == "Light") ? kThemeLight : kThemeDark;
     loadTheme(qssFile);
     statusBar()->showMessage("Theme: " + themeName);
+}
+
+void MainWindow::onManageLicense() {
+    LicenseDialog dialog(licenseManager_, this);
+    dialog.exec();
+
+    // Persist any changes made via the dialog.
+    if (!licenseManager_->saveConfig(QStringLiteral("config/license.json")))
+        statusBar()->showMessage("Warning: could not save license config");
 }
 
 } // namespace visioncast_ui

@@ -16,6 +16,7 @@ namespace visioncast_ui {
 class ControlRoom;
 class DesignPanel;
 class RecognitionPanel;
+class LicenseManager;
 
 /// Top-level application window for the VisionCast broadcast control room.
 class MainWindow : public QMainWindow {
@@ -36,6 +37,7 @@ private slots:
     void onEngineStartRequested(const QString& sourceName);
     void onEngineStopRequested();
     void onThemeSelected(const QString& themeName);
+    void onManageLicense();
 
 private:
     PreviewPanel* previewPanel_ = nullptr;
@@ -46,6 +48,7 @@ private:
     ControlRoom* controlRoom_ = nullptr;
     DesignPanel* designPanel_ = nullptr;
     RecognitionPanel* recognitionPanel_ = nullptr;
+    LicenseManager* licenseManager_ = nullptr;
 
     void setupMenuBar();
     void setupDockWidgets();
