@@ -89,7 +89,7 @@ class FaceMatcher:
             self.talent_db.encodings, encoding
         )
         best_idx = int(np.argmin(distances))
-        best_distance = distances[best_idx]
+        best_distance = float(distances[best_idx])
 
         if best_distance <= self.tolerance:
             confidence = 1.0 - best_distance
@@ -98,7 +98,7 @@ class FaceMatcher:
                 "Match: %s (distance=%.4f, confidence=%.4f, "
                 "threshold=%.4f)",
                 talent.get("name", "unknown"),
-                float(best_distance),
+                best_distance,
                 confidence,
                 self.tolerance,
             )
@@ -106,7 +106,7 @@ class FaceMatcher:
 
         logger.debug(
             "No match: best_distance=%.4f exceeds threshold=%.4f",
-            float(best_distance),
+            best_distance,
             self.tolerance,
         )
         return None, 0.0
