@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VisionCast-AI application icon — broadcast/AI theme -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="120" fill="#0d1117"/>
+
+  <!-- Outer broadcast signal arc (top-right) -->
+  <path d="M 170 86 A 60 60 0 0 1 170 170" fill="none" stroke="#1f6feb" stroke-width="7" stroke-linecap="round"/>
+  <!-- Middle broadcast signal arc (top-right) -->
+  <path d="M 185 71 A 82 82 0 0 1 185 185" fill="none" stroke="#1f6feb" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+  <!-- Outer broadcast signal arc (top-left) -->
+  <path d="M 86 86 A 60 60 0 0 0 86 170" fill="none" stroke="#1f6feb" stroke-width="7" stroke-linecap="round"/>
+  <!-- Middle broadcast signal arc (top-left) -->
+  <path d="M 71 71 A 82 82 0 0 0 71 185" fill="none" stroke="#1f6feb" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Camera lens body -->
+  <circle cx="128" cy="128" r="40" fill="#161b22" stroke="#1f6feb" stroke-width="4"/>
+
+  <!-- Lens inner ring -->
+  <circle cx="128" cy="128" r="28" fill="none" stroke="#1f6feb" stroke-width="3" opacity="0.8"/>
+
+  <!-- Lens pupil / AI core -->
+  <circle cx="128" cy="128" r="16" fill="#1f6feb"/>
+
+  <!-- AI highlight dot -->
+  <circle cx="121" cy="121" r="5" fill="#ffffff" opacity="0.45"/>
+
+  <!-- AI neural dots — arranged around the lens -->
+  <circle cx="128" cy="75"  r="4" fill="#1f6feb" opacity="0.9"/>
+  <circle cx="128" cy="181" r="4" fill="#1f6feb" opacity="0.9"/>
+  <circle cx="75"  cy="128" r="4" fill="#1f6feb" opacity="0.9"/>
+  <circle cx="181" cy="128" r="4" fill="#1f6feb" opacity="0.9"/>
+
+  <!-- Connector lines from lens to dots -->
+  <line x1="128" y1="88"  x2="128" y2="100" stroke="#1f6feb" stroke-width="2" opacity="0.5"/>
+  <line x1="128" y1="168" x2="128" y2="156" stroke="#1f6feb" stroke-width="2" opacity="0.5"/>
+  <line x1="88"  y1="128" x2="100" y2="128" stroke="#1f6feb" stroke-width="2" opacity="0.5"/>
+  <line x1="168" y1="128" x2="156" y2="128" stroke="#1f6feb" stroke-width="2" opacity="0.5"/>
+
+  <!-- Border ring -->
+  <circle cx="128" cy="128" r="120" fill="none" stroke="#1f6feb" stroke-width="3" opacity="0.4"/>
+</svg>
