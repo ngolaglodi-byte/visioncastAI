@@ -189,10 +189,9 @@ void LicenseManager::onReplyFinished(QNetworkReply* reply) {
             emit activationFailed(msg);
         }
     } else if (pendingAction_ == "validate_key") {
-        const bool valid = success
-            && mapStatus(obj.value("status").toString()) == LicenseStatus::Valid;
-        if (valid)
-            status_ = LicenseStatus::Valid;
+        LicenseStatus st = mapStatus(obj.value("status").toString());
+        const bool valid = success && st == LicenseStatus::Valid;
+        status_ = valid ? LicenseStatus::Valid : st;
         emit validationCompleted(valid, msg);
     } else if (pendingAction_ == "deactivate_key") {
         if (success) {
@@ -203,9 +202,10 @@ void LicenseManager::onReplyFinished(QNetworkReply* reply) {
             emit deactivationFailed(msg);
         }
     } else if (pendingAction_ == "check_status") {
-        LicenseStatus st = mapStatus(obj.value("status").toString());
-        if (success)
-            status_ = st;
+        LicenseStatus st = success
+            ? mapStatus(obj.value("status").toString())
+            : LicenseStatus::Invalid;
+        status_ = st;
         emit statusChecked(st, msg);
     }
 

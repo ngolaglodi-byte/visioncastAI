@@ -28,7 +28,8 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , licenseManager_(new LicenseManager(this))
 {
-    licenseManager_->loadConfig(QStringLiteral("config/license.json"));
+    if (!licenseManager_->loadConfig(QStringLiteral("config/license.json")))
+        qWarning("License config not loaded – check config/license.json");
 
     setupMenuBar();
     setupDockWidgets();
@@ -164,7 +165,8 @@ void MainWindow::onManageLicense() {
     dialog.exec();
 
     // Persist any changes made via the dialog.
-    licenseManager_->saveConfig(QStringLiteral("config/license.json"));
+    if (!licenseManager_->saveConfig(QStringLiteral("config/license.json")))
+        statusBar()->showMessage("Warning: could not save license config");
 }
 
 } // namespace visioncast_ui

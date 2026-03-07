@@ -138,9 +138,11 @@ class TestLicenseConfig:
     def test_no_hardcoded_secrets(self, config):
         """Ensure the shipped config template does not contain real keys."""
         api_key = config["api_key"]
-        # Template should ship with an empty api_key.
-        assert len(api_key) == 0 or api_key.startswith("eyJ"), (
-            "api_key should be empty or a valid JWT placeholder"
+        # Template should ship with an empty api_key so that users fill it
+        # in locally.  A non-empty value is acceptable only if it looks like
+        # a Base64-encoded JWT header (starts with "eyJ").
+        assert api_key == "" or api_key.startswith("eyJ"), (
+            "api_key should be empty or a Base64-encoded JWT"
         )
 
 
