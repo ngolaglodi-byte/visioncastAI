@@ -59,6 +59,10 @@ private:
     void setupDockWidgets();
     QDockWidget* createDock(const QString& title, QWidget* widget);
 
+    /// Shows a blocking license activation dialog on first run.
+    /// @return true if the user successfully activated a license.
+    bool showFirstRunLicenseActivation();
+
     /// Show a blocking error dialog and exit the application.
     void showLicenseBlockScreen(const QString& reason);
 };

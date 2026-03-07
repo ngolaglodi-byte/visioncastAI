@@ -57,5 +57,16 @@ else()
     )
 endif()
 
+# --- License API defaults (can be overridden at build time) ---
+# Usage: cmake -DVISIONCAST_LICENSE_API_URL="https://..." -DVISIONCAST_LICENSE_API_KEY="..."
+if(DEFINED VISIONCAST_LICENSE_API_URL)
+    target_compile_definitions(visioncast_ui PRIVATE
+        VISIONCAST_LICENSE_API_URL="${VISIONCAST_LICENSE_API_URL}")
+endif()
+if(DEFINED VISIONCAST_LICENSE_API_KEY)
+    target_compile_definitions(visioncast_ui PRIVATE
+        VISIONCAST_LICENSE_API_KEY="${VISIONCAST_LICENSE_API_KEY}")
+endif()
+
 # --- Install Rules ---
 install(TARGETS visioncast_ui RUNTIME DESTINATION bin)

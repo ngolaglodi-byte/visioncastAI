@@ -29,6 +29,17 @@ LicenseDialog::LicenseDialog(LicenseManager* manager, QWidget* parent)
 void LicenseDialog::setupUi() {
     auto* mainLayout = new QVBoxLayout(this);
 
+    // Welcome banner
+    auto* banner = new QLabel(this);
+    banner->setText(tr(
+        "<h2>Bienvenue dans VisionCast-AI</h2>"
+        "<p>Veuillez entrer votre clé de licence pour activer le logiciel.</p>"
+        "<p style='color: #8b949e; font-size: 11px;'>"
+        "Licence officielle Prestige Technologie Company</p>"));
+    banner->setWordWrap(true);
+    banner->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(banner);
+
     // Machine ID (read-only)
     machineIdLabel_ = new QLabel(this);
     machineIdLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
