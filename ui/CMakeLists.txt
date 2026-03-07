@@ -33,6 +33,7 @@ set(UI_SOURCES
     src/license_config.cpp
     src/license_secure_logger.cpp
     src/license_storage.cpp
+    src/python_launcher.cpp
 )
 
 add_executable(visioncast_ui ${UI_SOURCES})

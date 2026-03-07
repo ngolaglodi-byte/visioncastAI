@@ -20,6 +20,7 @@ class ControlRoom;
 class DesignPanel;
 class RecognitionPanel;
 class LicenseManager;
+class PythonLauncher;
 
 /// Top-level application window for the VisionCast broadcast control room.
 class MainWindow : public QMainWindow {
@@ -43,6 +44,10 @@ private slots:
     void onManageLicense();
     void onAbout();
     void onLicenseBlocked(const QString& reason);
+    void onAiStarted();
+    void onAiStopped();
+    void onAiError(const QString& error);
+    void onAiLog(const QString& line);
 
 private:
     PreviewPanel* previewPanel_ = nullptr;
@@ -54,6 +59,7 @@ private:
     DesignPanel* designPanel_ = nullptr;
     RecognitionPanel* recognitionPanel_ = nullptr;
     LicenseManager* licenseManager_ = nullptr;
+    PythonLauncher* pythonLauncher_ = nullptr;
 
     void setupMenuBar();
     void setupDockWidgets();

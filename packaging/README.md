@@ -85,18 +85,13 @@ The installer ships the following components:
 
 ---
 
-## Post-Install: Python Environment
+## Post-Install
 
-The Python AI module is bundled but still requires a virtual-environment setup
-on the target machine:
+No manual configuration is required. The Python AI environment is
+automatically created and managed by VisionCast on first launch.
 
-```bash
-cd <install-dir>/python
-python -m venv .venv
-source .venv/bin/activate   # macOS / Linux
-# .venv\Scripts\activate    # Windows
-pip install -r requirements.txt
-```
+> **Note for developers:** To manually manage the Python environment, see
+> the [Developer Guide](../docs/DOCUMENTATION.md).
 
 ---
 

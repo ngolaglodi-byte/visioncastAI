@@ -26,6 +26,7 @@
 #include "visioncast_ui/license_manager.h"
 #include "visioncast_ui/license_config.h"
 #include "visioncast_ui/license_dialog.h"
+#include "visioncast_ui/python_launcher.h"
 
 namespace visioncast_ui {
 
@@ -53,9 +54,30 @@ MainWindow::MainWindow(QWidget* parent)
     // Silently validate cached license key on startup.
     if (!licenseManager_->licenseKey().isEmpty())
         licenseManager_->validateKey(licenseManager_->licenseKey());
+
+    // ── Python AI auto-launch ──
+    pythonLauncher_ = new PythonLauncher(this);
+    connect(pythonLauncher_, &PythonLauncher::aiStarted,
+            this, &MainWindow::onAiStarted);
+    connect(pythonLauncher_, &PythonLauncher::aiStopped,
+            this, &MainWindow::onAiStopped);
+    connect(pythonLauncher_, &PythonLauncher::error,
+            this, &MainWindow::onAiError);
+    connect(pythonLauncher_, &PythonLauncher::logOutput,
+            this, &MainWindow::onAiLog);
+    connect(pythonLauncher_, &PythonLauncher::setupProgress,
+            this, [this](const QString& msg) {
+                statusBar()->showMessage(msg);
+            });
+
+    // Auto-start the AI service.
+    pythonLauncher_->start();
 }
 
-MainWindow::~MainWindow() = default;
+MainWindow::~MainWindow() {
+    if (pythonLauncher_)
+        pythonLauncher_->stop();
+}
 
 void MainWindow::setupMenuBar() {
     auto* fileMenu = menuBar()->addMenu("&File");
@@ -141,10 +163,14 @@ void MainWindow::onOverlayToggled(bool enabled) {
 }
 
 void MainWindow::onGoLive() {
+    if (pythonLauncher_ && !pythonLauncher_->isRunning())
+        pythonLauncher_->start();
     statusBar()->showMessage("LIVE");
 }
 
 void MainWindow::onStopBroadcast() {
+    if (pythonLauncher_)
+        pythonLauncher_->stop();
     statusBar()->showMessage("Broadcast stopped");
 }
 
@@ -183,6 +209,24 @@ void MainWindow::onManageLicense() {
     // Persist any changes made via the dialog.
     if (!licenseManager_->saveConfig(QStringLiteral("config/license.json")))
         statusBar()->showMessage("Warning: could not save license config");
+}
+
+void MainWindow::onAiStarted() {
+    statusBar()->showMessage("AI recognition service started");
+}
+
+void MainWindow::onAiStopped() {
+    statusBar()->showMessage("AI recognition service stopped");
+}
+
+void MainWindow::onAiError(const QString& error) {
+    statusBar()->showMessage("AI error: " + error);
+    qWarning() << "[PythonLauncher]" << error;
+}
+
+void MainWindow::onAiLog(const QString& line) {
+    // Forward to the monitoring panel if available.
+    qDebug() << "[AI]" << line;
 }
 
 void MainWindow::onAbout() {
