@@ -62,11 +62,11 @@ class TestResolveEndpointZmqSender:
         assert ep == "tcp://127.0.0.1:9003"
 
     def test_config_file_used_when_no_env(self, monkeypatch):
-        import ipc.zmq_sender as mod
+        import ipc._config as cfg_mod
         monkeypatch.delenv("ZMQ_PUB_ENDPOINT", raising=False)
         cfg_json = json.dumps({"ai": {"zmq_pub_endpoint": "tcp://127.0.0.1:9004"}})
         # Simulate a readable config/system.json by patching builtins.open only
-        # for the config path lookup inside _resolve_endpoint.
+        # for the config path lookup inside resolve_zmq_pub_endpoint.
         real_open = open
 
         def fake_open(path, *args, **kwargs):
@@ -76,24 +76,20 @@ class TestResolveEndpointZmqSender:
             return real_open(path, *args, **kwargs)
 
         with mock.patch("builtins.open", side_effect=fake_open):
-            ep = mod._resolve_endpoint(None)
+            ep = cfg_mod.resolve_zmq_pub_endpoint(None)
         assert ep == "tcp://127.0.0.1:9004"
 
-    def test_falls_back_to_default(self, monkeypatch, tmp_path):
-        import ipc.zmq_sender as mod
+    def test_falls_back_to_default(self, monkeypatch):
+        import ipc._config as cfg_mod
         monkeypatch.delenv("ZMQ_PUB_ENDPOINT", raising=False)
-        # Change to a directory with no config/system.json.
-        original_dir = os.getcwd()
-        try:
-            os.chdir(tmp_path)
-            ep = mod._resolve_endpoint(None)
-        finally:
-            os.chdir(original_dir)
+        # Simulate config/system.json being absent.
+        with mock.patch("builtins.open", side_effect=OSError("not found")):
+            ep = cfg_mod.resolve_zmq_pub_endpoint(None)
         assert ep == _DEFAULT_ENDPOINT
 
     def test_default_endpoint_constant(self):
-        import ipc.zmq_sender as mod
-        assert mod._DEFAULT_ENDPOINT == _DEFAULT_ENDPOINT
+        import ipc._config as cfg_mod
+        assert cfg_mod.DEFAULT_ZMQ_PUB_ENDPOINT == _DEFAULT_ENDPOINT
 
 
 # ---------------------------------------------------------------------------
@@ -101,27 +97,23 @@ class TestResolveEndpointZmqSender:
 # ---------------------------------------------------------------------------
 
 class TestResolveEndpointMetadataSender:
-    """Tests for ipc.metadata_sender._resolve_endpoint."""
+    """Tests for ipc.metadata_sender._resolve_endpoint (delegates to ipc._config)."""
 
     def test_explicit_argument_wins(self):
         import ipc.metadata_sender as mod
         ep = mod._resolve_endpoint("tcp://127.0.0.1:9011")
         assert ep == "tcp://127.0.0.1:9011"
 
-    def test_falls_back_to_default(self, monkeypatch, tmp_path):
-        import ipc.metadata_sender as mod
+    def test_falls_back_to_default(self, monkeypatch):
+        import ipc._config as cfg_mod
         monkeypatch.delenv("ZMQ_PUB_ENDPOINT", raising=False)
-        original_dir = os.getcwd()
-        try:
-            os.chdir(tmp_path)
-            ep = mod._resolve_endpoint(None)
-        finally:
-            os.chdir(original_dir)
+        with mock.patch("builtins.open", side_effect=OSError("not found")):
+            ep = cfg_mod.resolve_zmq_pub_endpoint(None)
         assert ep == _DEFAULT_ENDPOINT
 
     def test_default_endpoint_constant(self):
-        import ipc.metadata_sender as mod
-        assert mod._DEFAULT_ENDPOINT == _DEFAULT_ENDPOINT
+        import ipc._config as cfg_mod
+        assert cfg_mod.DEFAULT_ZMQ_PUB_ENDPOINT == _DEFAULT_ENDPOINT
 
 
 # ---------------------------------------------------------------------------
@@ -141,33 +133,24 @@ class TestZmqSenderEndpointResolution:
         assert sender.endpoint == "tcp://127.0.0.1:9021"
 
     @mock.patch("ipc.zmq_sender.zmq")
-    def test_default_is_5557(self, mock_zmq, monkeypatch, tmp_path):
+    def test_default_is_5557(self, mock_zmq, monkeypatch):
         mock_zmq.Context.return_value = mock.MagicMock()
         mock_zmq.Context.return_value.socket.return_value = mock.MagicMock()
         mock_zmq.PUB = 1
         monkeypatch.delenv("ZMQ_PUB_ENDPOINT", raising=False)
-        original_dir = os.getcwd()
-        try:
-            os.chdir(tmp_path)
-            from ipc.zmq_sender import ZmqSender
+        from ipc.zmq_sender import ZmqSender
+        with mock.patch("builtins.open", side_effect=OSError("not found")):
             sender = ZmqSender()
-        finally:
-            os.chdir(original_dir)
         assert sender.endpoint == _DEFAULT_ENDPOINT
 
     @mock.patch("ipc.zmq_sender.zmq")
-    def test_env_var_overrides_default(self, mock_zmq, monkeypatch, tmp_path):
+    def test_env_var_overrides_default(self, mock_zmq, monkeypatch):
         mock_zmq.Context.return_value = mock.MagicMock()
         mock_zmq.Context.return_value.socket.return_value = mock.MagicMock()
         mock_zmq.PUB = 1
         monkeypatch.setenv("ZMQ_PUB_ENDPOINT", "tcp://127.0.0.1:9022")
-        original_dir = os.getcwd()
-        try:
-            os.chdir(tmp_path)
-            from ipc.zmq_sender import ZmqSender
-            sender = ZmqSender()
-        finally:
-            os.chdir(original_dir)
+        from ipc.zmq_sender import ZmqSender
+        sender = ZmqSender()
         assert sender.endpoint == "tcp://127.0.0.1:9022"
 
 

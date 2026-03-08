@@ -11,39 +11,13 @@ Endpoint resolution order (highest to lowest priority):
   4. Built-in default ``tcp://127.0.0.1:5557``.
 """
 
-import json
-import os
-
 try:
     import zmq
 except ImportError:
     zmq = None
 
 from .protocol import TalentOverlayMessage
-
-#: Built-in default ZeroMQ PUB endpoint (Python → C++ engine).
-_DEFAULT_ENDPOINT = "tcp://127.0.0.1:5557"
-
-
-def _resolve_endpoint(explicit: str | None = None) -> str:
-    """Return the ZMQ PUB endpoint using the resolution order in the module docstring."""
-    if explicit is not None:
-        return explicit
-    env_val = os.environ.get("ZMQ_PUB_ENDPOINT")
-    if env_val:
-        return env_val
-    config_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "config", "system.json"
-    )
-    try:
-        with open(os.path.normpath(config_path), encoding="utf-8") as fh:
-            cfg = json.load(fh)
-        ep = cfg.get("ai", {}).get("zmq_pub_endpoint")
-        if ep:
-            return ep
-    except (OSError, json.JSONDecodeError, KeyError):
-        pass
-    return _DEFAULT_ENDPOINT
+from ._config import resolve_zmq_pub_endpoint as _resolve_endpoint
 
 
 class ZmqSender:

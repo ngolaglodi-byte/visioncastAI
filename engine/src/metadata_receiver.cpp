@@ -7,12 +7,10 @@
 /// ai.zmq_pub_endpoint, then tcp://127.0.0.1:5557).
 
 #include "visioncast/metadata_receiver.h"
+#include "visioncast/zmq_endpoint.h"
 
 #include <chrono>
-#include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <thread>
 
 #ifdef HAS_ZMQ
@@ -22,68 +20,11 @@
 namespace visioncast {
 
 // ---------------------------------------------------------------------------
-// Endpoint resolution (mirrors zmq_receiver.cpp)
-// ---------------------------------------------------------------------------
-
-namespace {
-
-constexpr const char* kDefaultEndpoint = "tcp://127.0.0.1:5557";
-
-std::string simpleJsonStr(const std::string& json, const std::string& key) {
-    const std::string needle = "\"" + key + "\"";
-    auto pos = json.find(needle);
-    if (pos == std::string::npos) return {};
-    pos = json.find(':', pos + needle.size());
-    if (pos == std::string::npos) return {};
-    pos = json.find('"', pos + 1);
-    if (pos == std::string::npos) return {};
-    auto end = json.find('"', pos + 1);
-    if (end == std::string::npos) return {};
-    return json.substr(pos + 1, end - pos - 1);
-}
-
-std::string resolveEndpoint(const std::string& explicit_ep) {
-    if (!explicit_ep.empty()) return explicit_ep;
-    const char* env = std::getenv("ZMQ_PUB_ENDPOINT");
-    if (env && env[0] != '\0') return env;
-    static const char* kPaths[] = {
-        "config/system.json",
-        "../config/system.json",
-        "../../config/system.json",
-    };
-    for (const char* p : kPaths) {
-        std::ifstream ifs(p);
-        if (!ifs.is_open()) continue;
-        std::ostringstream ss;
-        ss << ifs.rdbuf();
-        const std::string text = ss.str();
-        const std::string aiNeedle = "\"ai\"";
-        auto aiPos = text.find(aiNeedle);
-        if (aiPos == std::string::npos) continue;
-        auto bracePos = text.find('{', aiPos + aiNeedle.size());
-        if (bracePos == std::string::npos) continue;
-        int depth = 1;
-        size_t cur = bracePos + 1;
-        while (cur < text.size() && depth > 0) {
-            if (text[cur] == '{') ++depth;
-            else if (text[cur] == '}') --depth;
-            ++cur;
-        }
-        const std::string aiBlock = text.substr(bracePos, cur - bracePos);
-        const std::string ep = simpleJsonStr(aiBlock, "zmq_pub_endpoint");
-        if (!ep.empty()) return ep;
-    }
-    return kDefaultEndpoint;
-}
-
-} // anonymous namespace
-
-// ---------------------------------------------------------------------------
 // MetadataReceiver
 // ---------------------------------------------------------------------------
 
 MetadataReceiver::MetadataReceiver(const std::string& endpoint)
-    : endpoint_(resolveEndpoint(endpoint)) {}
+    : endpoint_(detail::resolveZmqPubEndpoint(endpoint)) {}
 
 MetadataReceiver::~MetadataReceiver() {
     stop();
