@@ -86,7 +86,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install pkg-config \
-            opencv zeromq freetype glfw glew ffmpeg
+            opencv zeromq cppzmq freetype glfw glew ffmpeg
 
       # ------------------------------------------------------------------ #
       # Windows — install C++ deps via the pre-installed vcpkg              #
