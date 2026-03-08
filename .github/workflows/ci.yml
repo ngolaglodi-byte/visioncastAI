@@ -49,22 +49,97 @@ jobs:
                   || { echo "INVALID JSON: $f"; exit 1; }
               done
 
-  cmake-configure:
-    name: CMake configure (dry-run)
-    runs-on: ubuntu-latest
+  cmake-build:
+    name: CMake build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          - os: macos-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install CMake and OpenCV dev headers
+      # ------------------------------------------------------------------ #
+      # Ubuntu — install C++ deps from apt                                  #
+      # ------------------------------------------------------------------ #
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y cmake libopencv-dev pkg-config
+          sudo apt-get install -y \
+            cmake build-essential pkg-config \
+            libopencv-dev \
+            libzmq3-dev \
+            libfreetype6-dev \
+            libglfw3-dev \
+            libglew-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
 
-      - name: CMake configure
+      # ------------------------------------------------------------------ #
+      # macOS — install C++ deps from Homebrew                              #
+      # ------------------------------------------------------------------ #
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
         run: |
-          cmake -S . -B /tmp/cmake-build \
+          brew install pkg-config \
+            opencv zeromq freetype glfw glew ffmpeg
+
+      # ------------------------------------------------------------------ #
+      # Windows — install C++ deps via the pre-installed vcpkg              #
+      # ------------------------------------------------------------------ #
+      - name: Cache vcpkg packages (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\vcpkg\installed\x64-windows
+          key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json') }}
+
+      - name: Install dependencies via vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg" install `
+            opencv4:x64-windows `
+            zeromq:x64-windows `
+            cppzmq:x64-windows `
+            freetype:x64-windows `
+            glfw3:x64-windows `
+            glew:x64-windows `
+            nlohmann-json:x64-windows
+          # Note: ffmpeg:x64-windows is optional; the engine builds without it.
+          # It is listed in vcpkg.json for local developer use but omitted here
+          # because vcpkg compiles FFmpeg from source (~30 min) and it is not
+          # required for a successful CI build.
+
+      # ------------------------------------------------------------------ #
+      # CMake configure                                                      #
+      # ------------------------------------------------------------------ #
+      - name: Configure CMake (Ubuntu / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DFETCHCONTENT_FULLY_DISCONNECTED=OFF
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake -S . -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_MANIFEST_INSTALL=OFF `
+            -DFETCHCONTENT_FULLY_DISCONNECTED=OFF
+
+      # ------------------------------------------------------------------ #
+      # CMake build                                                          #
+      # ------------------------------------------------------------------ #
+      - name: Build
+        run: cmake --build build --config Release --parallel
 
   python-tests:
     name: Python unit tests
@@ -87,3 +162,4 @@ jobs:
             --ignore=tests/test_modules.py \
             --ignore=tests/test_packaging.py \
             -k "not face_recognition"
+

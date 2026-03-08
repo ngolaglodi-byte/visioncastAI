@@ -1,0 +1,74 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 20, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "vcpkg-base",
+      "hidden": true,
+      "inherits": "base",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    },
+    {
+      "name": "linux",
+      "inherits": "vcpkg-base",
+      "displayName": "Linux (vcpkg)",
+      "description": "Linux build with vcpkg-managed dependencies. Set VCPKG_ROOT to your vcpkg installation.",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "windows",
+      "inherits": "vcpkg-base",
+      "displayName": "Windows x64 (vcpkg)",
+      "description": "Windows x64 build with vcpkg-managed dependencies. Set VCPKG_ROOT to your vcpkg installation.",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "macos",
+      "inherits": "vcpkg-base",
+      "displayName": "macOS (vcpkg)",
+      "description": "macOS build with vcpkg-managed dependencies. Set VCPKG_ROOT to your vcpkg installation.",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux",
+      "displayName": "Build Linux",
+      "configurePreset": "linux"
+    },
+    {
+      "name": "windows",
+      "displayName": "Build Windows",
+      "configurePreset": "windows"
+    },
+    {
+      "name": "macos",
+      "displayName": "Build macOS",
+      "configurePreset": "macos"
+    }
+  ]
+}

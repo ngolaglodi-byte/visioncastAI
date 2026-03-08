@@ -1,0 +1,15 @@
+{
+  "name": "visioncast-ai",
+  "version": "0.1.0",
+  "description": "VisionCast AI broadcast production suite",
+  "dependencies": [
+    "opencv4",
+    "zeromq",
+    "cppzmq",
+    "ffmpeg",
+    "freetype",
+    "glfw3",
+    "glew",
+    "nlohmann-json"
+  ]
+}

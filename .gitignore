@@ -43,6 +43,9 @@ Makefile
 *.out
 *.app
 
+# ----- vcpkg -----
+vcpkg_installed/
+
 # ----- Qt / Qt Creator -----
 *.pro.user
 *.pro.user.*

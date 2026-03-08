@@ -36,9 +36,16 @@ set(UI_SOURCES
     src/python_launcher.cpp
 )
 
-# --- Windows: embed icon into the executable via .rc ---
+# --- Windows: embed icon into the executable via .rc (only if the .ico exists) ---
 if(WIN32)
-    list(APPEND UI_SOURCES ${CMAKE_SOURCE_DIR}/packaging/icons/visioncast.rc)
+    set(_ico_file ${CMAKE_SOURCE_DIR}/packaging/icons/visioncast.ico)
+    set(_rc_file  ${CMAKE_SOURCE_DIR}/packaging/icons/visioncast.rc)
+    if(EXISTS ${_ico_file} AND EXISTS ${_rc_file})
+        list(APPEND UI_SOURCES ${_rc_file})
+    else()
+        message(STATUS "VisionCast UI: visioncast.ico not found — skipping icon embedding "
+                       "(generate it from packaging/icons/visioncast.svg; see packaging/icons/README.md)")
+    endif()
 endif()
 
 add_executable(visioncast_ui ${UI_SOURCES})

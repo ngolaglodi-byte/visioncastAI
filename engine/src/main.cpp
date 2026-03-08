@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
                   << std::endl;
     } else {
         // Optional: per-frame callback for custom processing.
-        engine.setFrameCallback([](visioncast::VideoFrame& frame) {
+        engine.setFrameCallback([](VideoFrame& frame) {
             // Placeholder: additional per-frame processing can be added here.
             (void)frame;
         });
