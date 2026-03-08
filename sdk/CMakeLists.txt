@@ -1,5 +1,25 @@
 cmake_minimum_required(VERSION 3.20)
 
+# ---------------------------------------------------------------------------
+# sdk_find_root(<out_var> <sdk_name>)
+#
+# Resolves the root directory for a proprietary SDK by checking two locations:
+#   1. sdk/<sdk_name>/include  — legacy / side-by-side layout
+#   2. sdk/third_party/<sdk_name>/include  — recommended drop-zone
+#
+# Sets <out_var> to the directory that *contains* the include/ sub-folder, or
+# to an empty string when the SDK is not present.
+# ---------------------------------------------------------------------------
+macro(sdk_find_root _out _name)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${_name}/include")
+        set(${_out} "${CMAKE_CURRENT_SOURCE_DIR}/${_name}")
+    elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/${_name}/include")
+        set(${_out} "${CMAKE_CURRENT_SOURCE_DIR}/third_party/${_name}")
+    else()
+        set(${_out} "")
+    endif()
+endmacro()
+
 # --- VisionCast SDK Abstraction Library ---
 set(SDK_SOURCES
     src/video_device.cpp
@@ -30,9 +50,10 @@ target_include_directories(visioncast_sdk
 
 # Optional: DeckLink SDK (Blackmagic Design Desktop Video)
 # DeckLink is COM-based on Windows — no import library required, only headers.
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/decklink/include")
+sdk_find_root(_decklink_root decklink)
+if(_decklink_root)
     target_include_directories(visioncast_sdk PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/decklink/include)
+        ${_decklink_root}/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_DECKLINK=1)
     if(WIN32)
         # DeckLink uses Windows COM — link against ole32 and oleaut32
@@ -41,25 +62,27 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/decklink/include")
 endif()
 
 # Optional: AJA NTV2 SDK
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/aja/include")
+sdk_find_root(_aja_root aja)
+if(_aja_root)
     target_include_directories(visioncast_sdk PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/aja/include)
+        ${_aja_root}/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_AJA=1)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/aja/lib")
+    if(EXISTS "${_aja_root}/lib")
         target_link_directories(visioncast_sdk PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/aja/lib)
+            ${_aja_root}/lib)
         target_link_libraries(visioncast_sdk PUBLIC ajantv2)
     endif()
 endif()
 
 # Optional: Magewell SDK (Pro Capture)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/magewell/include")
+sdk_find_root(_magewell_root magewell)
+if(_magewell_root)
     target_include_directories(visioncast_sdk PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/magewell/include)
+        ${_magewell_root}/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_MAGEWELL=1)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/magewell/lib")
+    if(EXISTS "${_magewell_root}/lib")
         target_link_directories(visioncast_sdk PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/magewell/lib)
+            ${_magewell_root}/lib)
         target_link_libraries(visioncast_sdk PUBLIC LibMWCapture)
     endif()
     if(WIN32)
@@ -69,27 +92,29 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/magewell/include")
 endif()
 
 # Optional: NDI SDK (NewTek/Vizrt NDI Tools)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ndi/include")
+sdk_find_root(_ndi_root ndi)
+if(_ndi_root)
     target_include_directories(visioncast_sdk PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/ndi/include)
+        ${_ndi_root}/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_NDI=1)
     if(WIN32)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ndi/lib/x64")
+        if(EXISTS "${_ndi_root}/lib/x64")
             target_link_directories(visioncast_sdk PRIVATE
-                ${CMAKE_CURRENT_SOURCE_DIR}/ndi/lib/x64)
+                ${_ndi_root}/lib/x64)
         endif()
         target_link_libraries(visioncast_sdk PUBLIC Processing.NDI.Lib.x64)
     endif()
 endif()
 
 # Optional: SRT (libsrt) + FFmpeg for encoding
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/srt/include")
+sdk_find_root(_srt_root srt)
+if(_srt_root)
     target_include_directories(visioncast_sdk PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/srt/include)
+        ${_srt_root}/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_SRT=1)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/srt/lib")
+    if(EXISTS "${_srt_root}/lib")
         target_link_directories(visioncast_sdk PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/srt/lib)
+            ${_srt_root}/lib)
     endif()
     target_link_libraries(visioncast_sdk PUBLIC srt)
     if(WIN32)
@@ -107,9 +132,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/srt/include")
 endif()
 
 # Optional: RTMP (via FFmpeg libavformat)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rtmp/include")
+sdk_find_root(_rtmp_root rtmp)
+if(_rtmp_root)
     target_include_directories(visioncast_sdk PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/rtmp/include)
+        ${_rtmp_root}/include)
     target_compile_definitions(visioncast_sdk PUBLIC HAS_RTMP=1)
     find_package(PkgConfig QUIET)
     if(PkgConfig_FOUND)
