@@ -6,8 +6,27 @@ include(FetchContent)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig QUIET)
 
-if(PkgConfig_FOUND)
+# ZeroMQ: prefer find_package (ships with libzmq CMake install), fall back to
+# pkg-config.  When neither is available the build continues without ZMQ and
+# the runtime logs that ZMQ is unavailable.
+find_package(ZeroMQ QUIET)
+if(ZeroMQ_FOUND)
+    set(ZMQ_FOUND TRUE)
+    set(ZMQ_LIBRARIES libzmq)
+    set(ZMQ_INCLUDE_DIRS "")   # target-based; handled via target_link_libraries
+    message(STATUS "VisionEngine: ZeroMQ found via find_package")
+elseif(PkgConfig_FOUND)
     pkg_check_modules(ZMQ libzmq)
+    if(ZMQ_FOUND)
+        message(STATUS "VisionEngine: ZeroMQ found via pkg-config")
+    else()
+        message(STATUS "VisionEngine: ZeroMQ not found — ZMQ IPC will be disabled at runtime")
+    endif()
+else()
+    message(STATUS "VisionEngine: ZeroMQ not found — ZMQ IPC will be disabled at runtime")
+endif()
+
+if(PkgConfig_FOUND)
     pkg_check_modules(FREETYPE freetype2)
     # FFmpeg (>= 6.0) — optional, enables hardware-accelerated encode/decode
     pkg_check_modules(AVCODEC  libavcodec)
@@ -63,8 +82,14 @@ target_link_libraries(visioncast_engine_lib
 )
 
 if(ZMQ_FOUND)
-    target_link_libraries(visioncast_engine_lib PUBLIC ${ZMQ_LIBRARIES})
-    target_include_directories(visioncast_engine_lib PUBLIC ${ZMQ_INCLUDE_DIRS})
+    if(ZeroMQ_FOUND)
+        # CMake target-based import (find_package(ZeroMQ))
+        target_link_libraries(visioncast_engine_lib PUBLIC libzmq)
+    else()
+        # pkg-config variables
+        target_link_libraries(visioncast_engine_lib PUBLIC ${ZMQ_LIBRARIES})
+        target_include_directories(visioncast_engine_lib PUBLIC ${ZMQ_INCLUDE_DIRS})
+    endif()
     target_compile_definitions(visioncast_engine_lib PUBLIC HAS_ZMQ=1)
 endif()
 

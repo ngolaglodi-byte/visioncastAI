@@ -41,9 +41,15 @@ private:
 /// ZeroMQ subscriber that receives Python AI metadata and stores it in a
 /// thread-safe MetadataStore.
 ///
+/// Endpoint resolution order (highest to lowest priority):
+///   1. Constructor @p endpoint argument (explicit override).
+///   2. @c ZMQ_PUB_ENDPOINT environment variable.
+///   3. @c ai.zmq_pub_endpoint key in @c config/system.json.
+///   4. Built-in default @c tcp://127.0.0.1:5557.
+///
 /// Usage:
 /// @code
-///   ZmqReceiver receiver("tcp://127.0.0.1:5556", "talent.overlay");
+///   ZmqReceiver receiver; // resolves endpoint automatically
 ///   receiver.start();
 ///   // ... later, from the engine thread:
 ///   if (receiver.hasNewMetadata()) {
@@ -54,9 +60,13 @@ private:
 /// @endcode
 class ZmqReceiver {
 public:
-    /// @param endpoint ZeroMQ endpoint to connect to (default matches Python sender).
+    /// @param endpoint ZeroMQ endpoint to connect to.  Pass an empty string
+    ///                 (the default) to resolve the endpoint automatically from
+    ///                 the environment variable @c ZMQ_PUB_ENDPOINT, then
+    ///                 @c config/system.json (@c ai.zmq_pub_endpoint), then
+    ///                 the built-in default @c tcp://127.0.0.1:5557.
     /// @param topic    ZeroMQ subscription topic filter.
-    explicit ZmqReceiver(const std::string& endpoint = "tcp://127.0.0.1:5556",
+    explicit ZmqReceiver(const std::string& endpoint = "",
                          const std::string& topic = "talent.overlay");
     ~ZmqReceiver();
 

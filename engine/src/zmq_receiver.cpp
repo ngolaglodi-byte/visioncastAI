@@ -5,6 +5,8 @@
 #include "visioncast/zmq_receiver.h"
 
 #include <chrono>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -13,6 +15,79 @@
 #endif
 
 namespace visioncast {
+
+// ---------------------------------------------------------------------------
+// Endpoint resolution helper
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// Default ZMQ PUB endpoint – single source of truth for the C++ side.
+constexpr const char* kDefaultEndpoint = "tcp://127.0.0.1:5557";
+
+/// Minimal JSON string extractor: returns value for "key": "value".
+std::string simpleJsonString(const std::string& json, const std::string& key) {
+    const std::string needle = "\"" + key + "\"";
+    auto pos = json.find(needle);
+    if (pos == std::string::npos) return {};
+    pos = json.find(':', pos + needle.size());
+    if (pos == std::string::npos) return {};
+    pos = json.find('"', pos + 1);
+    if (pos == std::string::npos) return {};
+    auto end = json.find('"', pos + 1);
+    if (end == std::string::npos) return {};
+    return json.substr(pos + 1, end - pos - 1);
+}
+
+/// Resolve the ZMQ PUB endpoint.
+///
+/// Resolution order (highest to lowest priority):
+///   1. @p explicit_ep argument (non-empty string).
+///   2. @c ZMQ_PUB_ENDPOINT environment variable.
+///   3. @c ai.zmq_pub_endpoint in @c config/system.json (searched relative to
+///      the current working directory and up to two parent directories).
+///   4. Built-in default @c kDefaultEndpoint.
+std::string resolveEndpoint(const std::string& explicit_ep) {
+    if (!explicit_ep.empty()) return explicit_ep;
+
+    const char* env = std::getenv("ZMQ_PUB_ENDPOINT");
+    if (env && env[0] != '\0') return env;
+
+    // Search for config/system.json relative to cwd and two parent directories.
+    static const char* kPaths[] = {
+        "config/system.json",
+        "../config/system.json",
+        "../../config/system.json",
+    };
+    for (const char* p : kPaths) {
+        std::ifstream ifs(p);
+        if (!ifs.is_open()) continue;
+        std::ostringstream ss;
+        ss << ifs.rdbuf();
+        const std::string text = ss.str();
+        // Find "ai" block first, then "zmq_pub_endpoint" within it.
+        const std::string aiNeedle = "\"ai\"";
+        auto aiPos = text.find(aiNeedle);
+        if (aiPos == std::string::npos) continue;
+        auto bracePos = text.find('{', aiPos + aiNeedle.size());
+        if (bracePos == std::string::npos) continue;
+        // Find matching closing brace.
+        int depth = 1;
+        size_t cur = bracePos + 1;
+        while (cur < text.size() && depth > 0) {
+            if (text[cur] == '{') ++depth;
+            else if (text[cur] == '}') --depth;
+            ++cur;
+        }
+        const std::string aiBlock = text.substr(bracePos, cur - bracePos);
+        const std::string ep = simpleJsonString(aiBlock, "zmq_pub_endpoint");
+        if (!ep.empty()) return ep;
+    }
+
+    return kDefaultEndpoint;
+}
+
+} // anonymous namespace
 
 // ---------------------------------------------------------------------------
 // MetadataStore
@@ -176,7 +251,7 @@ std::vector<std::string> jsonArrayElements(const std::string& arr) {
 // ---------------------------------------------------------------------------
 
 ZmqReceiver::ZmqReceiver(const std::string& endpoint, const std::string& topic)
-    : endpoint_(endpoint), topic_(topic) {}
+    : endpoint_(resolveEndpoint(endpoint)), topic_(topic) {}
 
 ZmqReceiver::~ZmqReceiver() { stop(); }
 
