@@ -3,6 +3,13 @@ cmake_minimum_required(VERSION 3.20)
 include(FetchContent)
 
 # --- Dependencies ---
+# On Windows with vcpkg (classic mode), the opencv4 package installs its
+# CMake config to share/opencv4/ — set OpenCV_DIR so find_package can locate it.
+if(WIN32 AND NOT DEFINED OpenCV_DIR AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+    set(OpenCV_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/opencv4"
+        CACHE PATH "Path to OpenCVConfig.cmake (vcpkg hint)" FORCE)
+endif()
+
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig QUIET)
 
@@ -62,15 +69,21 @@ else()
 endif()
 
 # FFmpeg (>= 6.0) — optional, enables hardware-accelerated encode/decode.
-# Try pkg-config first (Linux/macOS), then fall back to find_library (Windows/vcpkg).
+# Use pkg-config IMPORTED_TARGET (Linux/macOS) so the resulting CMake targets
+# carry the correct library-search directories (e.g. /opt/homebrew/lib on macOS).
+# Fall back to find_library for Windows / vcpkg where pkg-config is unavailable.
+set(_ffmpeg_via_pkgconfig FALSE)
 if(PkgConfig_FOUND)
-    pkg_check_modules(AVCODEC  libavcodec)
-    pkg_check_modules(AVFORMAT libavformat)
-    pkg_check_modules(AVUTIL   libavutil)
-    pkg_check_modules(SWSCALE  libswscale)
+    pkg_check_modules(AVCODEC  IMPORTED_TARGET libavcodec)
+    pkg_check_modules(AVFORMAT IMPORTED_TARGET libavformat)
+    pkg_check_modules(AVUTIL   IMPORTED_TARGET libavutil)
+    pkg_check_modules(SWSCALE  IMPORTED_TARGET libswscale)
+    if(AVCODEC_FOUND AND AVFORMAT_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
+        set(_ffmpeg_via_pkgconfig TRUE)
+    endif()
 endif()
 
-if(NOT (AVCODEC_FOUND AND AVFORMAT_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND))
+if(NOT _ffmpeg_via_pkgconfig)
     # Fallback: manual search — works with vcpkg-installed FFmpeg on Windows
     find_path(_ffmpeg_inc libavcodec/avcodec.h)
     find_library(_avcodec_lib  NAMES avcodec)
@@ -166,19 +179,29 @@ endif()
 target_link_libraries(visioncast_engine_lib PUBLIC nlohmann_json::nlohmann_json)
 
 # FFmpeg (>= 6.0): libavcodec, libavformat, libavutil, libswscale
-if(AVCODEC_FOUND AND AVFORMAT_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
-    target_link_libraries(visioncast_engine_lib PUBLIC
-        ${AVCODEC_LIBRARIES}
-        ${AVFORMAT_LIBRARIES}
-        ${AVUTIL_LIBRARIES}
-        ${SWSCALE_LIBRARIES}
-    )
-    target_include_directories(visioncast_engine_lib PUBLIC
-        ${AVCODEC_INCLUDE_DIRS}
-        ${AVFORMAT_INCLUDE_DIRS}
-        ${AVUTIL_INCLUDE_DIRS}
-        ${SWSCALE_INCLUDE_DIRS}
-    )
+if(_ffmpeg_via_pkgconfig OR (AVCODEC_FOUND AND AVFORMAT_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND))
+    if(_ffmpeg_via_pkgconfig)
+        # Use the IMPORTED_TARGET targets that carry library-search dirs automatically
+        target_link_libraries(visioncast_engine_lib PUBLIC
+            PkgConfig::AVCODEC
+            PkgConfig::AVFORMAT
+            PkgConfig::AVUTIL
+            PkgConfig::SWSCALE
+        )
+    else()
+        target_link_libraries(visioncast_engine_lib PUBLIC
+            ${AVCODEC_LIBRARIES}
+            ${AVFORMAT_LIBRARIES}
+            ${AVUTIL_LIBRARIES}
+            ${SWSCALE_LIBRARIES}
+        )
+        target_include_directories(visioncast_engine_lib PUBLIC
+            ${AVCODEC_INCLUDE_DIRS}
+            ${AVFORMAT_INCLUDE_DIRS}
+            ${AVUTIL_INCLUDE_DIRS}
+            ${SWSCALE_INCLUDE_DIRS}
+        )
+    endif()
     target_compile_definitions(visioncast_engine_lib PUBLIC HAS_FFMPEG=1)
     message(STATUS "VisionEngine: FFmpeg enabled (avcodec, avformat, avutil, swscale)")
 else()

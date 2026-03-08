@@ -126,17 +126,27 @@ jobs:
       - name: Configure CMake (Ubuntu / macOS)
         if: runner.os != 'Windows'
         run: |
+          # On macOS, add the Homebrew prefix to CMAKE_PREFIX_PATH so that
+          # all Homebrew-installed packages (including FFmpeg) are discoverable.
+          CMAKE_EXTRA_ARGS=""
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            CMAKE_EXTRA_ARGS="-DCMAKE_PREFIX_PATH=$(brew --prefix)"
+          fi
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DFETCHCONTENT_FULLY_DISCONNECTED=OFF
+            -DFETCHCONTENT_FULLY_DISCONNECTED=OFF \
+            $CMAKE_EXTRA_ARGS
 
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          # Explicitly pass OpenCV_DIR so find_package(OpenCV) locates the
+          # vcpkg opencv4 config (stored in share/opencv4/ rather than share/OpenCV/).
           cmake -S . -B build `
             -DCMAKE_BUILD_TYPE=Release `
             "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            "-DOpenCV_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\share\opencv4" `
             -DVCPKG_MANIFEST_INSTALL=OFF `
             -DFETCHCONTENT_FULLY_DISCONNECTED=OFF
 
