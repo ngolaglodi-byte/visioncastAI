@@ -102,7 +102,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg" install `
+          # Use --classic to avoid manifest-mode restrictions (vcpkg.json is present
+          # but includes ffmpeg which takes ~30 min to compile and is not needed in CI).
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg" install --classic `
             opencv4:x64-windows `
             zeromq:x64-windows `
             cppzmq:x64-windows `
@@ -110,10 +112,6 @@ jobs:
             glfw3:x64-windows `
             glew:x64-windows `
             nlohmann-json:x64-windows
-          # Note: ffmpeg:x64-windows is optional; the engine builds without it.
-          # It is listed in vcpkg.json for local developer use but omitted here
-          # because vcpkg compiles FFmpeg from source (~30 min) and it is not
-          # required for a successful CI build.
 
       # ------------------------------------------------------------------ #
       # CMake configure                                                      #
