@@ -69,6 +69,13 @@ sdk/ndi/lib/
 SDK_*.zip
 SDK_*.tar.gz
 
+# ----- SDK third_party drop-zone (sdk/third_party/) -----
+# Ignore proprietary SDK headers, libraries and binaries — never commit them.
+# The README.md and .gitkeep in sdk/third_party/ remain tracked.
+sdk/third_party/*/include/
+sdk/third_party/*/lib/
+sdk/third_party/*/bin/
+
 # ----- Node / Electron -----
 node_modules/
 npm-debug.log*
