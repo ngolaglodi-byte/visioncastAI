@@ -13,6 +13,7 @@ class QComboBox;
 class QLabel;
 class QSpinBox;
 class QGroupBox;
+class QVBoxLayout;
 
 namespace visioncast_ui {
 

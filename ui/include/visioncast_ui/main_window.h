@@ -8,14 +8,13 @@
 
 #include <QMainWindow>
 
+namespace visioncast_ui {
+
 class PreviewPanel;
 class OverlayEditor;
 class TalentManager;
 class OutputConfig;
 class MonitoringPanel;
-
-namespace visioncast_ui {
-
 class ControlRoom;
 class DesignPanel;
 class RecognitionPanel;

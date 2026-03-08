@@ -5,13 +5,13 @@
 
 #include <QDialog>
 
+#include "visioncast_ui/license_manager.h"
+
 class QLineEdit;
 class QLabel;
 class QPushButton;
 
 namespace visioncast_ui {
-
-class LicenseManager;
 
 /// Modal dialog that lets the user enter a license key and manage its
 /// activation state.

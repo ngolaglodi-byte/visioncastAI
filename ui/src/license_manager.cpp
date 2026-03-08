@@ -214,7 +214,7 @@ void LicenseManager::sendRequest(const QJsonObject& payload,
 
     pendingAction_ = action;
 
-    QNetworkRequest request(QUrl(apiUrl_));
+    QNetworkRequest request{QUrl(apiUrl_)};
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
     request.setRawHeader("apikey", apiKey_.toUtf8());

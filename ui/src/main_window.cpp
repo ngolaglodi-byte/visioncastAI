@@ -26,6 +26,7 @@
 #include "visioncast_ui/device_scanner.h"
 #include "visioncast_ui/license_manager.h"
 #include "visioncast_ui/license_config.h"
+#include "visioncast_ui/license_defaults.h"
 #include "visioncast_ui/license_dialog.h"
 #include "visioncast_ui/python_launcher.h"
 

@@ -6,24 +6,44 @@ include(FetchContent)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig QUIET)
 
-# ZeroMQ: prefer find_package (ships with libzmq CMake install), fall back to
-# pkg-config.  When neither is available the build continues without ZMQ and
-# the runtime logs that ZMQ is unavailable.
-find_package(ZeroMQ QUIET)
-if(ZeroMQ_FOUND)
+# ZeroMQ: try multiple detection strategies for cross-platform compatibility.
+# 1. find_package(cppzmq)  — provided by cppzmq's CMake install (vcpkg / Homebrew cppzmq)
+# 2. find_package(ZeroMQ)  — provided by libzmq's own CMake install
+# 3. pkg-config            — Linux fallback
+# 4. find_library          — last-resort path search (covers Homebrew without CMake configs)
+find_package(cppzmq QUIET)
+if(cppzmq_FOUND)
     set(ZMQ_FOUND TRUE)
-    set(ZMQ_LIBRARIES libzmq)
-    set(ZMQ_INCLUDE_DIRS "")   # target-based; handled via target_link_libraries
-    message(STATUS "VisionEngine: ZeroMQ found via find_package")
-elseif(PkgConfig_FOUND)
-    pkg_check_modules(ZMQ libzmq)
-    if(ZMQ_FOUND)
-        message(STATUS "VisionEngine: ZeroMQ found via pkg-config")
-    else()
-        message(STATUS "VisionEngine: ZeroMQ not found — ZMQ IPC will be disabled at runtime")
-    endif()
+    set(ZMQ_TARGET cppzmq)
+    message(STATUS "VisionEngine: ZeroMQ found via find_package(cppzmq)")
 else()
-    message(STATUS "VisionEngine: ZeroMQ not found — ZMQ IPC will be disabled at runtime")
+    find_package(ZeroMQ QUIET)
+    if(ZeroMQ_FOUND)
+        set(ZMQ_FOUND TRUE)
+        set(ZMQ_TARGET libzmq)
+        message(STATUS "VisionEngine: ZeroMQ found via find_package(ZeroMQ)")
+    elseif(PkgConfig_FOUND)
+        pkg_check_modules(ZMQ libzmq)
+        if(ZMQ_FOUND)
+            set(ZMQ_TARGET "")   # use ZMQ_LIBRARIES / ZMQ_INCLUDE_DIRS variables
+            message(STATUS "VisionEngine: ZeroMQ found via pkg-config")
+        endif()
+    endif()
+
+    if(NOT ZMQ_FOUND)
+        # Last resort: direct library search (e.g. Homebrew without CMake config files)
+        find_library(ZMQ_LIB NAMES zmq libzmq)
+        find_path(ZMQ_INC NAMES zmq.h)
+        if(ZMQ_LIB AND ZMQ_INC)
+            set(ZMQ_FOUND TRUE)
+            set(ZMQ_TARGET "")
+            set(ZMQ_LIBRARIES "${ZMQ_LIB}")
+            set(ZMQ_INCLUDE_DIRS "${ZMQ_INC}")
+            message(STATUS "VisionEngine: ZeroMQ found via find_library: ${ZMQ_LIB}")
+        else()
+            message(STATUS "VisionEngine: ZeroMQ not found — ZMQ IPC will be disabled at runtime")
+        endif()
+    endif()
 endif()
 
 # FreeType: prefer find_package (CMake built-in + vcpkg), fall back to pkg-config
@@ -122,11 +142,11 @@ target_link_libraries(visioncast_engine_lib
 )
 
 if(ZMQ_FOUND)
-    if(ZeroMQ_FOUND)
-        # CMake target-based import (find_package(ZeroMQ))
-        target_link_libraries(visioncast_engine_lib PUBLIC libzmq)
+    if(ZMQ_TARGET)
+        # CMake target-based import (cppzmq or libzmq CMake target)
+        target_link_libraries(visioncast_engine_lib PUBLIC ${ZMQ_TARGET})
     else()
-        # pkg-config variables
+        # pkg-config or find_library variables
         target_link_libraries(visioncast_engine_lib PUBLIC ${ZMQ_LIBRARIES})
         target_include_directories(visioncast_engine_lib PUBLIC ${ZMQ_INCLUDE_DIRS})
     endif()
