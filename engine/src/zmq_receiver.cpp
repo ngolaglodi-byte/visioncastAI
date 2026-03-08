@@ -3,6 +3,7 @@
 ///        MetadataStore that receives Python AI metadata.
 
 #include "visioncast/zmq_receiver.h"
+#include "visioncast/zmq_endpoint.h"
 
 #include <chrono>
 #include <iostream>
@@ -176,7 +177,7 @@ std::vector<std::string> jsonArrayElements(const std::string& arr) {
 // ---------------------------------------------------------------------------
 
 ZmqReceiver::ZmqReceiver(const std::string& endpoint, const std::string& topic)
-    : endpoint_(endpoint), topic_(topic) {}
+    : endpoint_(detail::resolveZmqPubEndpoint(endpoint)), topic_(topic) {}
 
 ZmqReceiver::~ZmqReceiver() { stop(); }
 

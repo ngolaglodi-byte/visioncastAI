@@ -148,7 +148,7 @@ Le module IA Python est responsable de la détection et de la reconnaissance fac
 | Reconnaissance | `ai/recognition.py` | Matching contre la base de talents, suivi temporel, lissage EMA |
 | Base de talents | `ai/talents_loader.py` | Chargement concurrent, cache disque SHA-256, hot-reload |
 | Protocole IPC | `ipc/protocol.py` | Messages JSON : `TalentOverlayMessage`, `RecognitionResult`, `Heartbeat`, `LogMessage` |
-| Transport | `ipc/zmq_sender.py` | Publication ZeroMQ PUB/SUB sur `tcp://127.0.0.1:5555` |
+| Transport | `ipc/zmq_sender.py` | Publication ZeroMQ PUB/SUB sur `tcp://127.0.0.1:5557` |
 | Monitoring | `monitoring/system_monitor.py` | Surveillance des performances système |
 
 #### 2.3.2 Moteur vidéo C++ (`engine/`)
@@ -202,7 +202,7 @@ Le module IA Python et le moteur C++ communiquent via **ZeroMQ** en mode PUB/SUB
 
 | Canal | Endpoint | Direction | Contenu |
 |-------|----------|-----------|---------|
-| Publication | `tcp://127.0.0.1:5555` | Python → C++ | Métadonnées de reconnaissance, heartbeat |
+| Publication | `tcp://127.0.0.1:5557` | Python → C++ | Métadonnées de reconnaissance, heartbeat |
 | Configuration | `tcp://127.0.0.1:5556` | C++ → Python | Commandes de configuration |
 
 **Topics ZeroMQ** :
@@ -372,7 +372,7 @@ Le fichier de configuration principal est `config/system.json` :
     "model": "hog",
     "tolerance": 0.45,
     "process_every_n_frames": 3,
-    "zmq_pub_endpoint": "tcp://127.0.0.1:5555",
+    "zmq_pub_endpoint": "tcp://127.0.0.1:5557",
     "zmq_config_endpoint": "tcp://127.0.0.1:5556"
   },
   "output": {

@@ -252,7 +252,7 @@ Sends recognized talent metadata to the C++ engine over ZeroMQ.
 class MetadataSender:
     """Publishes face recognition metadata to the C++ engine via ZeroMQ."""
 
-    def __init__(self, endpoint: str = "tcp://127.0.0.1:5555"):
+    def __init__(self, endpoint: str = "tcp://127.0.0.1:5557"):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind(endpoint)
@@ -475,7 +475,7 @@ Receives face recognition metadata from the Python AI module via ZeroMQ.
 ```cpp
 class MetadataReceiver {
 public:
-    MetadataReceiver(const std::string& endpoint = "tcp://127.0.0.1:5555");
+    MetadataReceiver(const std::string& endpoint = "tcp://127.0.0.1:5557");
     ~MetadataReceiver();
 
     void start();  // Begin listening in background thread
@@ -1095,7 +1095,7 @@ Thread 5: UI Thread (Qt event loop)
 
 | Protocol | Use Case | Port |
 |---|---|---|
-| **ZeroMQ PUB/SUB** | AI metadata (Python → C++) | `tcp://127.0.0.1:5555` |
+| **ZeroMQ PUB/SUB** | AI metadata (Python → C++) | `tcp://127.0.0.1:5557` |
 | **ZeroMQ REQ/REP** | Configuration commands (C++ → Python) | `tcp://127.0.0.1:5556` |
 | **Shared Memory** | Frame exchange for AI processing (optional, high-perf) | N/A |
 
@@ -1181,7 +1181,7 @@ ZeroMQ PUB/SUB messages use topic prefixes:
     "model": "hog",
     "tolerance": 0.45,
     "process_every_n_frames": 3,
-    "zmq_endpoint": "tcp://127.0.0.1:5555"
+    "zmq_pub_endpoint": "tcp://127.0.0.1:5557"
   },
   "output": {
     "primary": {

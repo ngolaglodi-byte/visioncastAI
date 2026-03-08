@@ -92,8 +92,8 @@ VisionCast‑AI fonctionne en trois couches interconnectées :
 │                                                                 │
 │  ┌──────────────┐    ZeroMQ     ┌─────────────────────────┐    │
 │  │  Module IA   │──────────────▶│   Moteur vidéo C++      │    │
-│  │  (Python)    │  tcp://5555   │                         │    │
-│  │              │  tcp://5556   │  ┌───────────────────┐  │    │
+│  │  (Python)    │  tcp://5557   │                         │    │
+│  │              │               │  ┌───────────────────┐  │    │
 │  │ • Détection  │               │  │ Chaîne de filtres │  │    │
 │  │ • Encodage   │               │  │ (LUT, Sharpen,    │  │    │
 │  │ • Matching   │               │  │  HDR, Contraste)  │  │    │
@@ -124,8 +124,7 @@ VisionCast‑AI fonctionne en trois couches interconnectées :
 
 | Canal | Transport | Direction | Usage |
 |---|---|---|---|
-| `tcp://127.0.0.1:5555` | ZeroMQ PUB/SUB | Python → C++ | Résultats de reconnaissance faciale |
-| `tcp://127.0.0.1:5556` | ZeroMQ PUB/SUB | Python → C++ | Métadonnées overlay des talents |
+| `tcp://127.0.0.1:5557` | ZeroMQ PUB/SUB | Python → C++ | Résultats de reconnaissance faciale et métadonnées overlay des talents |
 | Signaux Qt | In-process | UI ↔ Engine | Contrôle de la régie |
 
 ---
@@ -270,7 +269,7 @@ Après installation, configurez les trois fichiers principaux dans le répertoir
     "model": "hog",
     "tolerance": 0.45,
     "process_every_n_frames": 3,
-    "zmq_endpoint": "tcp://127.0.0.1:5555",
+    "zmq_pub_endpoint": "tcp://127.0.0.1:5557",
     "zmq_config_endpoint": "tcp://127.0.0.1:5556"
   },
   "output": {
