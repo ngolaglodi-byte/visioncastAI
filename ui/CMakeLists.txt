@@ -95,7 +95,12 @@ if(DEFINED VISIONCAST_LICENSE_API_KEY)
 endif()
 
 # --- Install Rules ---
-install(TARGETS visioncast_ui
-    RUNTIME DESTINATION bin
-    BUNDLE  DESTINATION .
-)
+if(APPLE)
+    install(TARGETS visioncast_ui
+        BUNDLE DESTINATION .
+    )
+else()
+    install(TARGETS visioncast_ui
+        RUNTIME DESTINATION bin
+    )
+endif()

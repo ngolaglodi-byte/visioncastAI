@@ -102,8 +102,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Use --classic to avoid manifest-mode restrictions (vcpkg.json is present
-          # but includes ffmpeg which takes ~30 min to compile and is not needed in CI).
+          # Temporarily rename vcpkg.json to allow classic mode
+          # (vcpkg.json includes ffmpeg which takes ~30 min to compile and is not needed in CI).
+          if (Test-Path vcpkg.json) {
+            Rename-Item vcpkg.json vcpkg.json.bak
+          }
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg" install --classic `
             opencv4:x64-windows `
             zeromq:x64-windows `
@@ -112,6 +115,10 @@ jobs:
             glfw3:x64-windows `
             glew:x64-windows `
             nlohmann-json:x64-windows
+          # Restore vcpkg.json
+          if (Test-Path vcpkg.json.bak) {
+            Rename-Item vcpkg.json.bak vcpkg.json
+          }
 
       # ------------------------------------------------------------------ #
       # CMake configure                                                      #
