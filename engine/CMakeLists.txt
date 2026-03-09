@@ -188,6 +188,11 @@ if(_ffmpeg_via_pkgconfig OR (AVCODEC_FOUND AND AVFORMAT_FOUND AND AVUTIL_FOUND A
             PkgConfig::AVUTIL
             PkgConfig::SWSCALE
         )
+        # On macOS, pkg-config IMPORTED_TARGETs may not propagate -L paths correctly
+        # to downstream targets. Explicitly add the library directories.
+        if(APPLE AND AVCODEC_LIBRARY_DIRS)
+            target_link_directories(visioncast_engine_lib PUBLIC ${AVCODEC_LIBRARY_DIRS})
+        endif()
     else()
         target_link_libraries(visioncast_engine_lib PUBLIC
             ${AVCODEC_LIBRARIES}
