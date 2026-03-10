@@ -1,0 +1,4 @@
+module VisionCast.Theme
+
+singleton VCTheme   1.0 VCTheme.qml
+singleton VCColors  1.0 VCColors.qml

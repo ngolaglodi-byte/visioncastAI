@@ -1,0 +1,33 @@
+<RCC>
+    <qresource prefix="/qml">
+        <!-- Root -->
+        <file alias="Main.qml">Main.qml</file>
+
+        <!-- Panels -->
+        <file alias="panels/SourcePanel.qml">panels/SourcePanel.qml</file>
+        <file alias="panels/ProgramView.qml">panels/ProgramView.qml</file>
+        <file alias="panels/PreviewView.qml">panels/PreviewView.qml</file>
+        <file alias="panels/TalentPanel.qml">panels/TalentPanel.qml</file>
+        <file alias="panels/OverlayPanel.qml">panels/OverlayPanel.qml</file>
+        <file alias="panels/MonitoringPanel.qml">panels/MonitoringPanel.qml</file>
+        <file alias="panels/OutputPanel.qml">panels/OutputPanel.qml</file>
+        <file alias="panels/RecognitionPanel.qml">panels/RecognitionPanel.qml</file>
+
+        <!-- Components -->
+        <file alias="components/VCButton.qml">components/VCButton.qml</file>
+        <file alias="components/VCCard.qml">components/VCCard.qml</file>
+        <file alias="components/VCStatusIndicator.qml">components/VCStatusIndicator.qml</file>
+        <file alias="components/VCSearchField.qml">components/VCSearchField.qml</file>
+        <file alias="components/VCSectionHeader.qml">components/VCSectionHeader.qml</file>
+        <file alias="components/VCVideoThumbnail.qml">components/VCVideoThumbnail.qml</file>
+        <file alias="components/VCTalentCard.qml">components/VCTalentCard.qml</file>
+        <file alias="components/VCOverlayPreview.qml">components/VCOverlayPreview.qml</file>
+        <file alias="components/VCMetricGauge.qml">components/VCMetricGauge.qml</file>
+        <file alias="components/VCToggleSwitch.qml">components/VCToggleSwitch.qml</file>
+
+        <!-- Theme -->
+        <file alias="theme/VCTheme.qml">theme/VCTheme.qml</file>
+        <file alias="theme/VCColors.qml">theme/VCColors.qml</file>
+        <file alias="theme/qmldir">theme/qmldir</file>
+    </qresource>
+</RCC>
