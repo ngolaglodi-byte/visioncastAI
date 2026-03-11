@@ -7,12 +7,19 @@
 /// Use visioncast::MultiFFmpegRtmpManager from engine/include/visioncast/multi_ffmpeg_rtmp_manager.h instead.
 /// The new engine module provides a cleaner architecture with direct FFmpeg integration.
 ///
+/// NOTE: This header requires ENABLE_SDK_RTMP=ON to be set during CMake configuration.
+/// By default, RTMP functionality is provided by the engine module (ffmpeg_rtmp).
+///
 /// Manages a dynamic list of concurrent RTMP output streams, each targeting
 /// an independent platform (YouTube Live, Facebook Live, Twitch, etc.).
 /// All public methods are thread-safe.
 ///
 /// VisionCast-AI — Licence officielle Prestige Technologie Company,
 /// développée par Glody Dimputu Ngola.
+
+#ifndef HAS_RTMP
+#error "This header requires HAS_RTMP to be defined. Enable with -DENABLE_SDK_RTMP=ON or use visioncast::MultiFFmpegRtmpManager from engine/include/visioncast/multi_ffmpeg_rtmp_manager.h instead."
+#endif
 
 #include "visioncast_sdk/rtmp_output.h"
 

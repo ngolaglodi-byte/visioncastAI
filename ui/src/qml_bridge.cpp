@@ -10,7 +10,7 @@
 #include "visioncast_ui/python_launcher.h"
 #include "visioncast_ui/device_scanner.h"
 
-#include "visioncast_sdk/multi_rtmp_manager.h"
+#include "visioncast/multi_ffmpeg_rtmp_manager.h"
 
 #include <QTimer>
 #include <QVariantMap>
@@ -24,7 +24,7 @@ namespace visioncast_ui {
 // ── RtmpImpl ───────────────────────────────────────────────────────────────
 
 struct QmlBridge::RtmpImpl {
-    MultiRtmpManager manager;
+    visioncast::MultiFFmpegRtmpManager manager;
 };
 
 // ── Construction / Destruction ─────────────────────────────────────────────
@@ -35,9 +35,9 @@ QmlBridge::QmlBridge(QObject* parent)
 {
     // Register status callback — delivers changes to QML via signals.
     rtmpImpl_->manager.setStatusCallback(
-        [this](const std::string& id, RtmpStreamStatus status, const std::string& message) {
+        [this](const std::string& id, visioncast::RtmpStatus status, const std::string& message) {
             const QString qid  = QString::fromStdString(id);
-            const QString qst  = QString::fromLatin1(rtmpStreamStatusToString(status));
+            const QString qst  = QString::fromLatin1(visioncast::rtmpStatusToString(status));
             const QString qmsg = QString::fromStdString(message);
             // Marshal back to the Qt main thread.
             QMetaObject::invokeMethod(this, [this, qid, qst, qmsg]() {
@@ -327,7 +327,7 @@ void QmlBridge::refreshRtmpStreams()
         m[QStringLiteral("serverUrl")]     = QString::fromStdString(e.serverUrl);
         m[QStringLiteral("streamKey")]     = QString::fromStdString(e.streamKey);
         m[QStringLiteral("status")]        = QString::fromLatin1(
-                                               rtmpStreamStatusToString(e.status));
+                                               visioncast::rtmpStatusToString(e.status));
         m[QStringLiteral("statusMessage")] = QString::fromStdString(e.statusMessage);
 
         // Flatten the last few log lines into a single string for QML display.

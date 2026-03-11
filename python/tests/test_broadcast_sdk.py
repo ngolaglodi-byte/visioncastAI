@@ -28,6 +28,9 @@ SDK_SRC = os.path.join(PROJECT_ROOT, "sdk", "src")
 SDK_CMAKE = os.path.join(PROJECT_ROOT, "sdk", "CMakeLists.txt")
 
 # Mapping of class name → (header filename, source filename, DeviceType)
+# Note: RTMPOutput and MultiRtmpManager are DEPRECATED and conditionally compiled.
+# They require ENABLE_SDK_RTMP=ON during CMake configuration.
+# Use visioncast::FFmpegRtmpOutput from engine/include/visioncast/ffmpeg_rtmp.h instead.
 BROADCAST_CLASSES = {
     "DeckLinkInput": ("decklink_input.h", "decklink_input.cpp", "CAPTURE"),
     "DeckLinkOutput": ("decklink_output.h", "decklink_output.cpp", "PLAYOUT"),
@@ -39,6 +42,9 @@ BROADCAST_CLASSES = {
     "SRTOutput": ("srt_output.h", "srt_output.cpp", "PLAYOUT"),
     "RTMPOutput": ("rtmp_output.h", "rtmp_output.cpp", "PLAYOUT"),
 }
+
+# Classes that are conditionally compiled (deprecated)
+CONDITIONAL_CLASSES = {"RTMPOutput"}
 
 
 # =====================================================================
@@ -148,17 +154,30 @@ class TestBroadcastSources:
 # =====================================================================
 
 class TestCMakeIntegration:
-    """Verify sdk/CMakeLists.txt includes all new source files."""
+    """Verify sdk/CMakeLists.txt includes all new source files.
+    
+    Note: Conditional classes (DEPRECATED) are checked separately since they
+    are compiled only when ENABLE_SDK_RTMP=ON.
+    """
 
     @pytest.fixture(scope="class")
     def cmake_text(self):
         return _read(SDK_CMAKE)
 
-    @pytest.mark.parametrize("cls_name", list(BROADCAST_CLASSES.keys()))
+    @pytest.mark.parametrize("cls_name", [c for c in BROADCAST_CLASSES.keys() if c not in CONDITIONAL_CLASSES])
     def test_source_in_cmake(self, cmake_text, cls_name):
         src = BROADCAST_CLASSES[cls_name][1]
         assert src in cmake_text, (
             f"{src} not found in sdk/CMakeLists.txt"
+        )
+
+    @pytest.mark.parametrize("cls_name", list(CONDITIONAL_CLASSES))
+    def test_conditional_source_in_cmake(self, cmake_text, cls_name):
+        """Conditional (deprecated) sources must be in CMake but may be conditional."""
+        src = BROADCAST_CLASSES[cls_name][1]
+        # The source should still be mentioned in CMakeLists.txt (within conditional block)
+        assert src in cmake_text, (
+            f"{src} not found in sdk/CMakeLists.txt (expected in conditional ENABLE_SDK_RTMP block)"
         )
 
 

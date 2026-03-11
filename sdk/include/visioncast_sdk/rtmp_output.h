@@ -7,9 +7,16 @@
 /// Use visioncast::FFmpegRtmpOutput from engine/include/visioncast/ffmpeg_rtmp.h instead.
 /// The new engine module provides a cleaner architecture with direct FFmpeg integration.
 ///
+/// NOTE: This header requires ENABLE_SDK_RTMP=ON to be set during CMake configuration.
+/// By default, RTMP functionality is provided by the engine module (ffmpeg_rtmp).
+///
 /// Wraps an RTMP publisher for live streaming to platforms
 /// such as YouTube Live, Twitch, or custom RTMP servers.
 /// Requires FFmpeg with RTMP support or librtmp.
+
+#ifndef HAS_RTMP
+#error "This header requires HAS_RTMP to be defined. Enable with -DENABLE_SDK_RTMP=ON or use visioncast::FFmpegRtmpOutput from engine/include/visioncast/ffmpeg_rtmp.h instead."
+#endif
 
 #include "visioncast_sdk/video_device.h"
 

@@ -22,10 +22,11 @@ endmacro()
 
 # --- VisionCast SDK Abstraction Library ---
 # Always-present sources (no proprietary SDK headers required)
+# NOTE: multi_rtmp_manager.cpp is excluded here because it depends on RTMPOutput,
+# which is conditionally compiled. See ENABLE_SDK_RTMP section below.
 set(SDK_SOURCES
     src/video_device.cpp
     src/sdk_logger.cpp
-    src/multi_rtmp_manager.cpp
 )
 
 add_library(visioncast_sdk STATIC ${SDK_SOURCES})
@@ -161,7 +162,9 @@ if(_rtmp_root)
     # SDK RTMP is disabled by default; use -DENABLE_SDK_RTMP=ON to enable legacy SDK RTMP
     option(ENABLE_SDK_RTMP "Enable deprecated SDK RTMP output (use engine/ffmpeg_rtmp instead)" OFF)
     if(ENABLE_SDK_RTMP)
-        target_sources(visioncast_sdk PRIVATE src/rtmp_output.cpp)
+        target_sources(visioncast_sdk PRIVATE
+            src/rtmp_output.cpp
+            src/multi_rtmp_manager.cpp)
         target_include_directories(visioncast_sdk PRIVATE
             ${_rtmp_root}/include)
         target_compile_definitions(visioncast_sdk PUBLIC HAS_RTMP=1)

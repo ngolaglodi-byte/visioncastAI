@@ -86,6 +86,7 @@ target_include_directories(visioncast_ui
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include/visioncast_ui
         ${CMAKE_SOURCE_DIR}/sdk/include
+        ${CMAKE_SOURCE_DIR}/engine/include
 )
 
 if(TARGET Qt6::Widgets)
@@ -188,6 +189,7 @@ if(_have_quick)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/include/visioncast_ui
             ${CMAKE_SOURCE_DIR}/sdk/include
+            ${CMAKE_SOURCE_DIR}/engine/include
     )
 
     if(TARGET Qt6::Quick)
