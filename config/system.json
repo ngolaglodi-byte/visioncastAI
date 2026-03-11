@@ -34,6 +34,26 @@
       "server_url": "rtmp://live.example.com/app",
       "stream_key": ""
     },
+    "rtmp_streams": [
+      {
+        "name": "YouTube Live",
+        "platform": "youtube",
+        "server_url": "rtmp://a.rtmp.youtube.com/live2",
+        "stream_key": ""
+      },
+      {
+        "name": "Facebook Live",
+        "platform": "facebook",
+        "server_url": "rtmp://live-api-s.facebook.com:80/rtmp",
+        "stream_key": ""
+      },
+      {
+        "name": "Twitch",
+        "platform": "twitch",
+        "server_url": "rtmp://live.twitch.tv/app",
+        "stream_key": ""
+      }
+    ],
     "recording": {
       "enabled": false,
       "path": "/recordings/",

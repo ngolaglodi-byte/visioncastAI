@@ -12,6 +12,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QTimer>
+#include <memory>
 
 namespace visioncast_ui {
 
@@ -43,6 +44,7 @@ class QmlBridge : public QObject {
     Q_PROPERTY(QVariantList talents           READ talents           NOTIFY talentsChanged)
     Q_PROPERTY(QVariantList overlayTemplates  READ overlayTemplates  NOTIFY overlaysChanged)
     Q_PROPERTY(QVariantList outputConfigs     READ outputConfigs     NOTIFY outputsChanged)
+    Q_PROPERTY(QVariantList rtmpStreams        READ rtmpStreams        NOTIFY rtmpStreamsChanged)
 
 public:
     explicit QmlBridge(QObject* parent = nullptr);
@@ -63,6 +65,7 @@ public:
     QVariantList talents()          const;
     QVariantList overlayTemplates() const;
     QVariantList outputConfigs()    const;
+    QVariantList rtmpStreams()      const;
 
     // ── Invokable methods (callable from QML) ──────────────────────
 
@@ -96,6 +99,38 @@ public:
     /// Return a snapshot of the current system status as a map.
     Q_INVOKABLE QVariantMap getSystemStatus();
 
+    // ── Multi-streaming invokables ─────────────────────────────────
+
+    /// Add a new RTMP stream. Returns the generated stream ID.
+    Q_INVOKABLE QString addRtmpStream(const QString& name,
+                                      const QString& platform,
+                                      const QString& url,
+                                      const QString& key);
+
+    /// Remove an RTMP stream by ID (stops it first if active).
+    Q_INVOKABLE void removeRtmpStream(const QString& id);
+
+    /// Update RTMP stream configuration (only when Idle or Error).
+    Q_INVOKABLE void updateRtmpStream(const QString& id,
+                                      const QString& name,
+                                      const QString& url,
+                                      const QString& key);
+
+    /// Start an RTMP stream asynchronously.
+    Q_INVOKABLE void startRtmpStream(const QString& id);
+
+    /// Stop an RTMP stream.
+    Q_INVOKABLE void stopRtmpStream(const QString& id);
+
+    /// Stop all active RTMP streams.
+    Q_INVOKABLE void stopAllRtmpStreams();
+
+    /// Persist current RTMP stream list to the session config.
+    Q_INVOKABLE void saveRtmpConfig();
+
+    /// Reload RTMP stream list from the session config.
+    Q_INVOKABLE void loadRtmpConfig();
+
 signals:
     void engineStatusChanged();
     void aiStatusChanged();
@@ -108,6 +143,12 @@ signals:
     void talentsChanged();
     void overlaysChanged();
     void outputsChanged();
+    void rtmpStreamsChanged();
+
+    /// Emitted whenever a single RTMP stream changes status.
+    void rtmpStreamStatusChanged(const QString& id,
+                                 const QString& status,
+                                 const QString& message);
 
     /// Generic notification for the QML UI (e.g. toast messages).
     void notification(const QString& message, const QString& level);
@@ -122,7 +163,9 @@ private:
     void initLicense();
     void initPython();
     void populateDemoData();
+    void populateDefaultRtmpStreams();
     void refreshMetrics();
+    void refreshRtmpStreams();
 
     LicenseManager* licenseManager_  = nullptr;
     PythonLauncher* pythonLauncher_   = nullptr;
@@ -142,8 +185,13 @@ private:
     QVariantList talents_;
     QVariantList overlayTemplates_;
     QVariantList outputConfigs_;
+    QVariantList rtmpStreams_;
 
     QTimer* metricsTimer_ = nullptr;
+
+    struct RtmpImpl;
+    std::unique_ptr<RtmpImpl> rtmpImpl_;
 };
 
 } // namespace visioncast_ui
+
