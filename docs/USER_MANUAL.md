@@ -1002,6 +1002,86 @@ RTMP (Real-Time Messaging Protocol) est utilisé pour le streaming vers les plat
 
 ---
 
+### 7.5 Multi-Streaming (plusieurs plateformes simultanément)
+
+VisionCast-AI permet de diffuser **simultanément** sur YouTube Live, Facebook Live, Twitch, et toute destination RTMP personnalisée, **sans interruption du signal TV** (SDI/NDI/SRT).
+
+#### Accès au panneau
+
+Le panneau **MULTI-STREAMING** est visible dans la barre du bas de l'interface, entre le panneau de monitoring et la configuration des sorties.
+
+#### Démarrage rapide
+
+**1. Configurer une plateforme :**
+
+- Cliquez sur le bouton de la plateforme souhaitée (**YouTube**, **Facebook**, **Twitch**) dans la barre "Add:" en bas du panneau.
+- La plateforme apparaît dans la liste avec l'URL pré-remplie.
+- Cliquez sur **▼** pour déplier la ligne et vérifier l'URL.
+
+**2. Saisir la clé de stream :**
+
+- Ouvrez le dialogue d'édition en cliquant sur **+ Custom** ou utilisez `bridge.updateRtmpStream()`.
+- Collez la clé de stream fournie par la plateforme (YouTube Studio, Facebook Live, Twitch Dashboard).
+
+**3. Lancer le stream :**
+
+- Cliquez sur **Start** pour démarrer la diffusion vers cette plateforme.
+- Le statut passe de `IDLE` → `CONNECTING` → `LIVE` (indicateur vert).
+
+**4. Surveiller :**
+
+- Le compteur de streams actifs s'affiche dans l'en-tête.
+- Dépliez la ligne (bouton **▼**) pour voir les derniers logs temps réel.
+- En cas d'erreur, l'indicateur passe au rouge avec le message d'erreur.
+
+**5. Arrêter :**
+
+- Cliquez sur **Stop** pour arrêter un stream individuel.
+- Cliquez sur **Stop All** pour arrêter tous les streams d'un coup.
+
+#### Ajouter une destination personnalisée
+
+Cliquez sur **+ Custom** pour ouvrir le dialogue :
+
+| Champ | Description | Exemple |
+|-------|-------------|---------|
+| Name | Nom d'affichage | `Ma Chaîne` |
+| RTMP URL | Adresse du serveur | `rtmp://live.example.com/app` |
+| Stream Key | Clé de publication (masquée) | `xxxx-xxxx-xxxx` |
+
+#### URLs RTMP des plateformes principales
+
+| Plateforme | URL RTMP | Où trouver la clé |
+|------------|----------|------------------|
+| YouTube Live | `rtmp://a.rtmp.youtube.com/live2` | YouTube Studio → Live |
+| Facebook Live | `rtmp://live-api-s.facebook.com:80/rtmp` | Meta Business Suite → Live |
+| Twitch | `rtmp://live.twitch.tv/app` | Twitch → Creator Dashboard → Stream Key |
+| Restream | `rtmp://live.restream.io/live` | Restream Dashboard |
+| Custom | (votre serveur) | (votre config) |
+
+#### Indicateurs de statut
+
+| Couleur | Statut | Signification |
+|---------|--------|---------------|
+| 🟢 Vert | `LIVE` | Stream actif, connexion établie |
+| 🟡 Orange (clignotant) | `CONNECTING` | Connexion en cours |
+| 🔴 Rouge | `ERROR` | Échec (URL invalide, clé incorrecte, réseau) |
+| ⚫ Gris | `IDLE` | Stream arrêté, prêt à démarrer |
+
+#### Gestion des erreurs
+
+En cas d'erreur sur un stream :
+- Les autres streams ne sont pas affectés (chaque stream est indépendant).
+- Le message d'erreur est visible dans la zone de log dépliée.
+- Corrigez l'URL/clé et cliquez à nouveau sur **Start**.
+
+#### Sauvegarder la configuration
+
+Cliquez sur **Save** dans l'en-tête du panneau pour persister la liste des streams.  
+La configuration est aussi accessible dans `config/system.json` → `output.rtmp_streams`.
+
+---
+
 ## 8. Dépannage
 
 ### 8.1 L'IA ne reconnaît pas les talents

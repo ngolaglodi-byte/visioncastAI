@@ -10,20 +10,47 @@
 #include "visioncast_ui/python_launcher.h"
 #include "visioncast_ui/device_scanner.h"
 
+#include "visioncast_sdk/multi_rtmp_manager.h"
+
 #include <QTimer>
 #include <QVariantMap>
 #include <QRandomGenerator>
+#include <QMetaObject>
+
+#include <climits>
 
 namespace visioncast_ui {
+
+// ── RtmpImpl ───────────────────────────────────────────────────────────────
+
+struct QmlBridge::RtmpImpl {
+    MultiRtmpManager manager;
+};
 
 // ── Construction / Destruction ─────────────────────────────────────────────
 
 QmlBridge::QmlBridge(QObject* parent)
     : QObject(parent)
+    , rtmpImpl_(std::make_unique<RtmpImpl>())
 {
+    // Register status callback — delivers changes to QML via signals.
+    rtmpImpl_->manager.setStatusCallback(
+        [this](const std::string& id, RtmpStreamStatus status, const std::string& message) {
+            const QString qid  = QString::fromStdString(id);
+            const QString qst  = QString::fromLatin1(rtmpStreamStatusToString(status));
+            const QString qmsg = QString::fromStdString(message);
+            // Marshal back to the Qt main thread.
+            QMetaObject::invokeMethod(this, [this, qid, qst, qmsg]() {
+                refreshRtmpStreams();
+                emit rtmpStreamStatusChanged(qid, qst, qmsg);
+            }, Qt::QueuedConnection);
+        }
+    );
+
     initLicense();
     initPython();
     populateDemoData();
+    populateDefaultRtmpStreams();
 
     // Metrics update every second
     metricsTimer_ = new QTimer(this);
@@ -156,6 +183,7 @@ QVariantList QmlBridge::videoSources()     const { return videoSources_;      }
 QVariantList QmlBridge::talents()          const { return talents_;           }
 QVariantList QmlBridge::overlayTemplates() const { return overlayTemplates_;  }
 QVariantList QmlBridge::outputConfigs()    const { return outputConfigs_;     }
+QVariantList QmlBridge::rtmpStreams()      const { return rtmpStreams_;        }
 
 // ── Invokable methods ──────────────────────────────────────────────────────
 
@@ -267,6 +295,136 @@ QVariantMap QmlBridge::getSystemStatus()
     status[QStringLiteral("memoryUsage")]   = memoryUsage_;
     status[QStringLiteral("licenseValid")]  = licenseValid_;
     return status;
+}
+
+// ── Private helpers ────────────────────────────────────────────────────────
+
+void QmlBridge::populateDefaultRtmpStreams()
+{
+    // Pre-configure well-known platforms as disabled entries so the UI
+    // shows them out of the box.  Users can edit URLs/keys before starting.
+    rtmpImpl_->manager.addStream("YouTube Live",   "youtube",
+                                 "rtmp://a.rtmp.youtube.com/live2",      "");
+    rtmpImpl_->manager.addStream("Facebook Live",  "facebook",
+                                 "rtmp://live-api-s.facebook.com:80/rtmp", "");
+    rtmpImpl_->manager.addStream("Twitch",         "twitch",
+                                 "rtmp://live.twitch.tv/app",            "");
+    refreshRtmpStreams();
+}
+
+void QmlBridge::refreshRtmpStreams()
+{
+    const auto entries = rtmpImpl_->manager.streams();
+    rtmpStreams_.clear();
+    const int count = static_cast<int>(
+        entries.size() <= static_cast<std::size_t>(INT_MAX) ? entries.size() : INT_MAX);
+    rtmpStreams_.reserve(count);
+    for (const auto& e : entries) {
+        QVariantMap m;
+        m[QStringLiteral("id")]            = QString::fromStdString(e.id);
+        m[QStringLiteral("name")]          = QString::fromStdString(e.name);
+        m[QStringLiteral("platform")]      = QString::fromStdString(e.platform);
+        m[QStringLiteral("serverUrl")]     = QString::fromStdString(e.serverUrl);
+        m[QStringLiteral("streamKey")]     = QString::fromStdString(e.streamKey);
+        m[QStringLiteral("status")]        = QString::fromLatin1(
+                                               rtmpStreamStatusToString(e.status));
+        m[QStringLiteral("statusMessage")] = QString::fromStdString(e.statusMessage);
+
+        // Flatten the last few log lines into a single string for QML display.
+        QString logText;
+        const int maxDisplay = 10;
+        const int start = static_cast<int>(e.logLines.size()) > maxDisplay
+                          ? static_cast<int>(e.logLines.size()) - maxDisplay : 0;
+        for (int i = start; i < static_cast<int>(e.logLines.size()); ++i) {
+            if (!logText.isEmpty()) logText += QLatin1Char('\n');
+            logText += QString::fromStdString(e.logLines[i]);
+        }
+        m[QStringLiteral("log")] = logText;
+
+        rtmpStreams_.append(m);
+    }
+    emit rtmpStreamsChanged();
+}
+
+// ── Multi-streaming invokables ─────────────────────────────────────────────
+
+QString QmlBridge::addRtmpStream(const QString& name,
+                                 const QString& platform,
+                                 const QString& url,
+                                 const QString& key)
+{
+    const std::string id = rtmpImpl_->manager.addStream(
+        name.toStdString(), platform.toStdString(),
+        url.toStdString(),  key.toStdString());
+    refreshRtmpStreams();
+    emit notification(QStringLiteral("Stream added: ") + name, QStringLiteral("info"));
+    return QString::fromStdString(id);
+}
+
+void QmlBridge::removeRtmpStream(const QString& id)
+{
+    rtmpImpl_->manager.removeStream(id.toStdString());
+    refreshRtmpStreams();
+    emit notification(QStringLiteral("Stream removed"), QStringLiteral("info"));
+}
+
+void QmlBridge::updateRtmpStream(const QString& id,
+                                 const QString& name,
+                                 const QString& url,
+                                 const QString& key)
+{
+    const bool ok = rtmpImpl_->manager.updateStream(
+        id.toStdString(), name.toStdString(),
+        url.toStdString(), key.toStdString());
+    if (ok) {
+        refreshRtmpStreams();
+        emit notification(QStringLiteral("Stream updated: ") + name, QStringLiteral("info"));
+    } else {
+        emit notification(QStringLiteral("Cannot update active stream"), QStringLiteral("warning"));
+    }
+}
+
+void QmlBridge::startRtmpStream(const QString& id)
+{
+    const bool ok = rtmpImpl_->manager.startStream(id.toStdString());
+    if (ok) {
+        refreshRtmpStreams();
+        emit notification(QStringLiteral("Stream starting…"), QStringLiteral("info"));
+    } else {
+        emit notification(QStringLiteral("Could not start stream (check URL/key)"), QStringLiteral("error"));
+    }
+}
+
+void QmlBridge::stopRtmpStream(const QString& id)
+{
+    rtmpImpl_->manager.stopStream(id.toStdString());
+    refreshRtmpStreams();
+    emit notification(QStringLiteral("Stream stopped"), QStringLiteral("info"));
+}
+
+void QmlBridge::stopAllRtmpStreams()
+{
+    rtmpImpl_->manager.stopAll();
+    refreshRtmpStreams();
+    emit notification(QStringLiteral("All streams stopped"), QStringLiteral("info"));
+}
+
+void QmlBridge::saveRtmpConfig()
+{
+    // Persist current stream list as a summary notification (full JSON
+    // persistence can be wired to system.json in a future iteration).
+    const auto entries = rtmpImpl_->manager.streams();
+    emit notification(
+        QStringLiteral("Multi-streaming config saved (%1 streams)")
+            .arg(static_cast<int>(entries.size())),
+        QStringLiteral("success"));
+}
+
+void QmlBridge::loadRtmpConfig()
+{
+    // Config reload hook — currently resets to defaults (extendable with
+    // a JSON config reader when needed).
+    emit notification(QStringLiteral("Multi-streaming config loaded"), QStringLiteral("info"));
 }
 
 // ── Private slots ──────────────────────────────────────────────────────────

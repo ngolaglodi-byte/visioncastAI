@@ -1105,6 +1105,130 @@ Le patron **PIMPL** (Pointer to IMPLementation) est utilisé pour isoler les dé
 
 ---
 
+### 9.6 Multi-Streaming (sorties RTMP simultanées)
+
+VisionCast-AI prend en charge la diffusion simultanée vers plusieurs plateformes de streaming en parallèle, sans interrompre les sorties broadcast classiques (SDI, NDI, SRT, Recording).
+
+#### Architecture
+
+| Composant | Fichier | Rôle |
+|-----------|---------|------|
+| `MultiRtmpManager` | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | Gestion thread-safe des instances RTMP multiples |
+| `RtmpStreamEntry` | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | État + config d'un stream individuel |
+| `RtmpStreamStatus` | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | Enum : `Idle`, `Connecting`, `Live`, `Error` |
+| `QmlBridge` (extensions) | `ui/include/visioncast_ui/qml_bridge.h` | Propriété `rtmpStreams`, invokables Start/Stop/Add/Remove |
+| `MultiStreamPanel` | `ui/qml/panels/MultiStreamPanel.qml` | Panneau UI dédié multi-streaming |
+
+#### Fonctionnement
+
+Chaque stream RTMP tourne dans un **thread indépendant** :
+
+1. `MultiRtmpManager::startStream(id)` → status `Connecting`
+2. Worker thread : `RTMPOutput::open()` + `RTMPOutput::startPlayout()` → status `Live`
+3. Erreur réseau → status `Error` (les autres streams ne sont pas affectés)
+4. `MultiRtmpManager::stopStream(id)` → flag atomic → graceful shutdown → status `Idle`
+
+#### Sécurité des threads
+
+- **Mutex global** protège la liste des streams (`listMutex`).
+- **Mutex par stream** protège l'état individuel (`StreamRecord::mutex`).
+- Le flag d'arrêt est un `std::atomic<bool>` pour éviter les data races.
+- Les callbacks de statut sont marshallés vers le thread Qt principal via `QMetaObject::invokeMethod`.
+
+#### Configuration (system.json)
+
+```json
+"output": {
+  "rtmp_streams": [
+    {
+      "name": "YouTube Live",
+      "platform": "youtube",
+      "server_url": "rtmp://a.rtmp.youtube.com/live2",
+      "stream_key": "VOTRE_CLÉ"
+    },
+    {
+      "name": "Facebook Live",
+      "platform": "facebook",
+      "server_url": "rtmp://live-api-s.facebook.com:80/rtmp",
+      "stream_key": "VOTRE_CLÉ"
+    },
+    {
+      "name": "Twitch",
+      "platform": "twitch",
+      "server_url": "rtmp://live.twitch.tv/app",
+      "stream_key": "VOTRE_CLÉ"
+    }
+  ]
+}
+```
+
+#### API C++ (`MultiRtmpManager`)
+
+```cpp
+MultiRtmpManager mgr;
+
+// Callback de statut (peut être appelé depuis un thread worker)
+mgr.setStatusCallback([](const std::string& id,
+                          RtmpStreamStatus status,
+                          const std::string& message) { /* … */ });
+
+// Ajouter un stream
+std::string id = mgr.addStream("YouTube Live", "youtube",
+                                "rtmp://a.rtmp.youtube.com/live2", "MON_KEY");
+
+// Démarrer / arrêter
+mgr.startStream(id);   // async — status → Connecting → Live
+mgr.stopStream(id);    // bloquant jusqu'à la fin du thread
+
+// Modifier la configuration (seulement si Idle ou Error)
+mgr.updateStream(id, "YouTube Live 4K", newUrl, newKey);
+
+// Supprimer (arrêt automatique si actif)
+mgr.removeStream(id);
+
+// Tout arrêter
+mgr.stopAll();
+
+// Snapshot de tous les streams
+for (const auto& e : mgr.streams()) { /* e.id, e.status, e.logLines… */ }
+```
+
+#### API QML (`bridge`)
+
+```qml
+// Propriété réactive
+ListView { model: bridge.rtmpStreams; … }
+
+// Invokables
+bridge.addRtmpStream(name, platform, url, key)
+bridge.removeRtmpStream(id)
+bridge.updateRtmpStream(id, name, url, key)
+bridge.startRtmpStream(id)
+bridge.stopRtmpStream(id)
+bridge.stopAllRtmpStreams()
+bridge.saveRtmpConfig()
+
+// Signal de statut individuel
+Connections {
+    target: bridge
+    function onRtmpStreamStatusChanged(id, status, message) { /* … */ }
+}
+```
+
+#### Panneau UI `MultiStreamPanel`
+
+- **Liste dynamique** des plateformes configurées avec badge couleur (YouTube rouge, Facebook bleu, Twitch violet, custom vert).
+- **Indicateur de statut** : vert = Live, orange = Connecting (animation), rouge = Error, gris = Idle.
+- **Boutons Start/Stop** individuels par stream.
+- **Bouton Stop All** visible dès qu'un stream est actif.
+- **Zone de log** collapsible par stream (10 dernières lignes).
+- **Boutons d'ajout rapide** : YouTube, Facebook, Twitch.
+- **Dialogue "Add Custom"** : Nom, URL RTMP, clé de stream (masquée).
+- **Bouton Remove** (désactivé si stream actif).
+- **Bouton Save** pour persister la configuration.
+
+---
+
 ## 10. Dépannage & FAQ
 
 ### 10.1 L'IA ne reconnaît pas les talents

@@ -12,6 +12,7 @@
         <file alias="panels/MonitoringPanel.qml">panels/MonitoringPanel.qml</file>
         <file alias="panels/OutputPanel.qml">panels/OutputPanel.qml</file>
         <file alias="panels/RecognitionPanel.qml">panels/RecognitionPanel.qml</file>
+        <file alias="panels/MultiStreamPanel.qml">panels/MultiStreamPanel.qml</file>
 
         <!-- Components -->
         <file alias="components/VCButton.qml">components/VCButton.qml</file>

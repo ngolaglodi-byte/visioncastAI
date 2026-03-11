@@ -189,7 +189,9 @@ ApplicationWindow {
 
                 MonitoringPanel { Layout.fillWidth:  true; Layout.fillHeight: true }
                 Rectangle { Layout.preferredWidth: 1; Layout.fillHeight: true; color: "#30363D" }
-                OutputPanel { Layout.preferredWidth: 420; Layout.fillHeight: true }
+                MultiStreamPanel { Layout.preferredWidth: 480; Layout.minimumWidth: 340; Layout.fillHeight: true }
+                Rectangle { Layout.preferredWidth: 1; Layout.fillHeight: true; color: "#30363D" }
+                OutputPanel { Layout.preferredWidth: 300; Layout.fillHeight: true }
             }
         }
     } // end Rectangle

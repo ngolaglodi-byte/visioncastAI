@@ -25,6 +25,7 @@ endmacro()
 set(SDK_SOURCES
     src/video_device.cpp
     src/sdk_logger.cpp
+    src/multi_rtmp_manager.cpp
 )
 
 add_library(visioncast_sdk STATIC ${SDK_SOURCES})
