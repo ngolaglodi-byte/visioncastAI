@@ -1095,9 +1095,13 @@ Le patron **PIMPL** (Pointer to IMPLementation) est utilisé pour isoler les dé
 
 ### 9.5 RTMP (Real-Time Messaging Protocol)
 
+> **Note:** L'implémentation RTMP SDK (`sdk/include/visioncast_sdk/rtmp_output.h`) est dépréciée.
+> Utilisez le nouveau module engine FFmpeg RTMP (`engine/include/visioncast/ffmpeg_rtmp.h`) à la place.
+
 | Caractéristique | Détail |
 |-----------------|--------|
-| Classe | `RtmpOutput` (`sdk/include/visioncast_sdk/rtmp_output.h`) |
+| Classe (nouvelle) | `FFmpegRtmpOutput` (`engine/include/visioncast/ffmpeg_rtmp.h`) |
+| Classe (dépréciée) | `RtmpOutput` (`sdk/include/visioncast_sdk/rtmp_output.h`) |
 | Protocole | RTMP sur TCP |
 | Configuration | URL du serveur + clé de stream |
 | Plateformes | YouTube Live, Facebook Live, Twitch, serveurs RTMP personnalisés |
@@ -1109,13 +1113,17 @@ Le patron **PIMPL** (Pointer to IMPLementation) est utilisé pour isoler les dé
 
 VisionCast-AI prend en charge la diffusion simultanée vers plusieurs plateformes de streaming en parallèle, sans interrompre les sorties broadcast classiques (SDI, NDI, SRT, Recording).
 
+> **Note:** Le module SDK `MultiRtmpManager` est déprécié. Utilisez `MultiFFmpegRtmpManager` du module engine à la place.
+
 #### Architecture
 
 | Composant | Fichier | Rôle |
 |-----------|---------|------|
-| `MultiRtmpManager` | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | Gestion thread-safe des instances RTMP multiples |
-| `RtmpStreamEntry` | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | État + config d'un stream individuel |
-| `RtmpStreamStatus` | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | Enum : `Idle`, `Connecting`, `Live`, `Error` |
+| `MultiFFmpegRtmpManager` (nouveau) | `engine/include/visioncast/multi_ffmpeg_rtmp_manager.h` | Gestion thread-safe des instances RTMP multiples via FFmpeg |
+| `FFmpegRtmpOutput` (nouveau) | `engine/include/visioncast/ffmpeg_rtmp.h` | Sortie RTMP FFmpeg directe |
+| `FFmpegRtmpStreamEntry` (nouveau) | `engine/include/visioncast/multi_ffmpeg_rtmp_manager.h` | État + config d'un stream individuel |
+| `RtmpStatus` (nouveau) | `engine/include/visioncast/ffmpeg_rtmp.h` | Enum : `Idle`, `Connecting`, `Live`, `Error` |
+| `MultiRtmpManager` (déprécié) | `sdk/include/visioncast_sdk/multi_rtmp_manager.h` | Ancienne gestion RTMP SDK |
 | `QmlBridge` (extensions) | `ui/include/visioncast_ui/qml_bridge.h` | Propriété `rtmpStreams`, invokables Start/Stop/Add/Remove |
 | `MultiStreamPanel` | `ui/qml/panels/MultiStreamPanel.qml` | Panneau UI dédié multi-streaming |
 
@@ -1123,10 +1131,10 @@ VisionCast-AI prend en charge la diffusion simultanée vers plusieurs plateforme
 
 Chaque stream RTMP tourne dans un **thread indépendant** :
 
-1. `MultiRtmpManager::startStream(id)` → status `Connecting`
-2. Worker thread : `RTMPOutput::open()` + `RTMPOutput::startPlayout()` → status `Live`
+1. `MultiFFmpegRtmpManager::startStream(id)` → status `Connecting`
+2. Worker thread : `FFmpegRtmpOutput::open()` + `FFmpegRtmpOutput::start()` → status `Live`
 3. Erreur réseau → status `Error` (les autres streams ne sont pas affectés)
-4. `MultiRtmpManager::stopStream(id)` → flag atomic → graceful shutdown → status `Idle`
+4. `MultiFFmpegRtmpManager::stopStream(id)` → flag atomic → graceful shutdown → status `Idle`
 
 #### Sécurité des threads
 

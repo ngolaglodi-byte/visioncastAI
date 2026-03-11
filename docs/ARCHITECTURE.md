@@ -92,7 +92,9 @@ visioncast-ai/
 │   │       ├── filter_chain.h     # Video filter pipeline
 │   │       ├── output_manager.h   # Broadcast output routing
 │   │       ├── metadata_receiver.h # IPC metadata from Python
-│   │       └── vision_engine.h    # GPU vision engine (capture + preview + render)
+│   │       ├── vision_engine.h    # GPU vision engine (capture + preview + render)
+│   │       ├── ffmpeg_rtmp.h      # NEW: FFmpeg RTMP streaming output
+│   │       └── multi_ffmpeg_rtmp_manager.h # NEW: Multi-platform RTMP manager
 │   └── src/                       # Implementation
 │       ├── main.cpp               # Engine entry point
 │       ├── capture_manager.cpp
@@ -101,7 +103,9 @@ visioncast-ai/
 │       ├── filter_chain.cpp
 │       ├── output_manager.cpp
 │       ├── metadata_receiver.cpp
-│       └── vision_engine.cpp      # VisionEngine implementation
+│       ├── vision_engine.cpp      # VisionEngine implementation
+│       ├── ffmpeg_rtmp.cpp        # NEW: FFmpeg RTMP implementation
+│       └── multi_ffmpeg_rtmp_manager.cpp # NEW: Multi-RTMP manager implementation
 │
 ├── ui/                            # Qt Control Room
 │   ├── CMakeLists.txt             # Qt CMake build
@@ -141,7 +145,7 @@ visioncast-ai/
 │   │       ├── ndi_input.h        # NDI receive
 │   │       ├── ndi_output.h       # NDI send
 │   │       ├── srt_output.h       # SRT streaming output
-│   │       └── rtmp_output.h      # RTMP streaming output
+│   │       └── rtmp_output.h      # RTMP streaming output (DEPRECATED - use engine/ffmpeg_rtmp.h)
 │   └── src/
 │       ├── video_device.cpp
 │       ├── decklink_device.cpp
@@ -156,7 +160,7 @@ visioncast-ai/
 │       ├── ndi_input.cpp
 │       ├── ndi_output.cpp
 │       ├── srt_output.cpp
-│       └── rtmp_output.cpp
+│       └── rtmp_output.cpp        # (DEPRECATED - use engine/ffmpeg_rtmp.cpp)
 │
 ├── overlays/                      # Overlay Templates & Assets
 │   ├── README.md
@@ -1016,7 +1020,9 @@ public:
 };
 ```
 
-#### RTMPOutput (`rtmp_output.h`)
+#### RTMPOutput (`rtmp_output.h`) - DEPRECATED
+
+> **Deprecated:** Use `FFmpegRtmpOutput` from `engine/include/visioncast/ffmpeg_rtmp.h` instead.
 
 ```cpp
 class RTMPOutput : public IVideoDevice {
@@ -1027,6 +1033,36 @@ public:
     std::string streamKey() const;
     bool isOutputActive() const;
 };
+```
+
+#### FFmpegRtmpOutput (`engine/include/visioncast/ffmpeg_rtmp.h`) - NEW
+
+```cpp
+namespace visioncast {
+
+struct RtmpStreamConfig {
+    std::string serverUrl;
+    std::string streamKey;
+    int width = 1920;
+    int height = 1080;
+    double frameRate = 30.0;
+    int bitrateBps = 4000000;
+    std::string preset = "veryfast";
+    std::string tune = "zerolatency";
+};
+
+class FFmpegRtmpOutput {
+public:
+    void setConfig(const RtmpStreamConfig& config);
+    bool open();
+    void close();
+    bool start();
+    bool stop();
+    bool sendFrame(const RtmpFrame& frame);
+    RtmpStatus status() const;
+};
+
+} // namespace visioncast
 ```
 
 ---
