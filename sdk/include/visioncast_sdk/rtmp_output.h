@@ -3,6 +3,10 @@
 /// @file rtmp_output.h
 /// @brief RTMP (Real-Time Messaging Protocol) send-only device wrapper.
 ///
+/// @deprecated This SDK RTMP implementation is deprecated.
+/// Use visioncast::FFmpegRtmpOutput from engine/include/visioncast/ffmpeg_rtmp.h instead.
+/// The new engine module provides a cleaner architecture with direct FFmpeg integration.
+///
 /// Wraps an RTMP publisher for live streaming to platforms
 /// such as YouTube Live, Twitch, or custom RTMP servers.
 /// Requires FFmpeg with RTMP support or librtmp.

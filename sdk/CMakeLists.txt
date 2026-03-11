@@ -152,23 +152,33 @@ else()
 endif()
 
 # Optional: RTMP (via FFmpeg libavformat)
+# DEPRECATED: RTMP functionality has been moved to the engine module (ffmpeg_rtmp).
+# Use visioncast::FFmpegRtmpOutput from engine/include/visioncast/ffmpeg_rtmp.h instead.
+# This SDK RTMP support is kept for backward compatibility but may be removed in future versions.
 sdk_find_root(_rtmp_root rtmp)
 if(_rtmp_root)
-    target_sources(visioncast_sdk PRIVATE src/rtmp_output.cpp)
-    target_include_directories(visioncast_sdk PRIVATE
-        ${_rtmp_root}/include)
-    target_compile_definitions(visioncast_sdk PUBLIC HAS_RTMP=1)
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_check_modules(FFMPEG_RTMP QUIET libavformat libavcodec libavutil)
-        if(FFMPEG_RTMP_FOUND)
-            target_include_directories(visioncast_sdk PRIVATE ${FFMPEG_RTMP_INCLUDE_DIRS})
-            target_link_libraries(visioncast_sdk PUBLIC ${FFMPEG_RTMP_LIBRARIES})
+    message(STATUS "VisionCast SDK: RTMP root found at ${_rtmp_root} (DEPRECATED - use engine/ffmpeg_rtmp instead)")
+    # SDK RTMP is disabled by default; use -DENABLE_SDK_RTMP=ON to enable legacy SDK RTMP
+    option(ENABLE_SDK_RTMP "Enable deprecated SDK RTMP output (use engine/ffmpeg_rtmp instead)" OFF)
+    if(ENABLE_SDK_RTMP)
+        target_sources(visioncast_sdk PRIVATE src/rtmp_output.cpp)
+        target_include_directories(visioncast_sdk PRIVATE
+            ${_rtmp_root}/include)
+        target_compile_definitions(visioncast_sdk PUBLIC HAS_RTMP=1)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(FFMPEG_RTMP QUIET libavformat libavcodec libavutil)
+            if(FFMPEG_RTMP_FOUND)
+                target_include_directories(visioncast_sdk PRIVATE ${FFMPEG_RTMP_INCLUDE_DIRS})
+                target_link_libraries(visioncast_sdk PUBLIC ${FFMPEG_RTMP_LIBRARIES})
+            endif()
         endif()
+        message(WARNING "VisionCast SDK: Legacy RTMP enabled — consider migrating to engine/ffmpeg_rtmp")
+    else()
+        message(STATUS "VisionCast SDK: SDK RTMP disabled (use engine/ffmpeg_rtmp for RTMP streaming)")
     endif()
-    message(STATUS "VisionCast SDK: RTMP root found at ${_rtmp_root}")
 else()
-    message(STATUS "VisionCast SDK: RTMP SDK not found — RTMP output disabled")
+    message(STATUS "VisionCast SDK: RTMP SDK not found — use engine/ffmpeg_rtmp for RTMP streaming")
 endif()
 
 # --- Install Rules ---

@@ -137,6 +137,8 @@ set(ENGINE_SOURCES
     src/zmq_receiver.cpp
     src/vision_engine.cpp
     src/gpu_compositor.cpp
+    src/ffmpeg_rtmp.cpp
+    src/multi_ffmpeg_rtmp_manager.cpp
 )
 
 add_library(visioncast_engine_lib STATIC ${ENGINE_SOURCES})
