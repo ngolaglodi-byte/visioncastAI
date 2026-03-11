@@ -339,3 +339,81 @@ class TestNDIBandwidth:
     def test_output_has_timecode(self):
         text = _read(os.path.join(SDK_INCLUDE, "ndi_output.h"))
         assert "setOutputTimecode(" in text
+
+
+# =====================================================================
+# SDK Exception Handling Verification
+# =====================================================================
+
+class TestSDKExceptionHandling:
+    """Verify SDK source files have proper exception handling patterns."""
+
+    @pytest.mark.parametrize("source_file", [
+        "decklink_input.cpp",
+        "decklink_output.cpp",
+        "ndi_input.cpp",
+        "ndi_output.cpp",
+    ])
+    def test_source_has_try_catch(self, source_file):
+        """Verify SDK sources use try-catch for error handling."""
+        path = os.path.join(SDK_SRC, source_file)
+        if not os.path.isfile(path):
+            pytest.skip(f"{source_file} not found")
+        text = _read(path)
+        # Should have either try-catch blocks or conditional SDK guard
+        # Using more specific patterns to avoid false positives from comments
+        has_try_catch = re.search(r"\btry\s*\{", text) and re.search(r"\bcatch\s*\(", text)
+        has_sdk_guard = "#ifdef HAS_" in text
+        assert has_try_catch or has_sdk_guard, (
+            f"{source_file} should have exception handling or SDK guard"
+        )
+
+    @pytest.mark.parametrize("source_file", [
+        "decklink_input.cpp",
+        "decklink_output.cpp",
+        "ndi_input.cpp",
+        "ndi_output.cpp",
+    ])
+    def test_source_catches_sdk_error(self, source_file):
+        """Verify SDK sources catch SDKError exceptions."""
+        path = os.path.join(SDK_SRC, source_file)
+        if not os.path.isfile(path):
+            pytest.skip(f"{source_file} not found")
+        text = _read(path)
+        # Should catch SDKError or have SDK guard (stub mode)
+        # Pattern matches catch blocks that reference SDKError
+        has_catch_sdk_error = re.search(r"\bcatch\s*\([^)]*SDKError", text)
+        has_sdk_guard = "#ifdef HAS_" in text
+        assert has_catch_sdk_error or has_sdk_guard, (
+            f"{source_file} should catch SDKError or have SDK guard"
+        )
+
+    @pytest.mark.parametrize("source_file,error_type", [
+        ("decklink_input.cpp", "DeckLinkError"),
+        ("decklink_output.cpp", "DeckLinkError"),
+        ("ndi_input.cpp", "NDIError"),
+        ("ndi_output.cpp", "NDIError"),
+    ])
+    def test_source_throws_specific_error(self, source_file, error_type):
+        """Verify SDK sources throw device-specific errors."""
+        path = os.path.join(SDK_SRC, source_file)
+        if not os.path.isfile(path):
+            pytest.skip(f"{source_file} not found")
+        text = _read(path)
+        # Should throw specific error or have SDK guard (stub mode)
+        # Pattern matches throw statements with optional whitespace
+        has_specific_throw = re.search(rf"\bthrow\s+{error_type}\b", text)
+        has_sdk_guard = "#ifdef HAS_" in text
+        assert has_specific_throw or has_sdk_guard, (
+            f"{source_file} should throw {error_type} or have SDK guard"
+        )
+
+    def test_decklink_input_has_device_not_found(self):
+        """DeckLinkInput should throw DeviceNotFoundError on missing device."""
+        text = _read(os.path.join(SDK_SRC, "decklink_input.cpp"))
+        assert "DeviceNotFoundError" in text or "#ifdef HAS_DECKLINK" in text
+
+    def test_decklink_output_has_device_not_found(self):
+        """DeckLinkOutput should throw DeviceNotFoundError on missing device."""
+        text = _read(os.path.join(SDK_SRC, "decklink_output.cpp"))
+        assert "DeviceNotFoundError" in text or "#ifdef HAS_DECKLINK" in text

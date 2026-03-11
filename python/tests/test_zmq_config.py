@@ -5,6 +5,8 @@ correct order: explicit argument > ZMQ_PUB_ENDPOINT env var >
 config/system.json (ai.zmq_pub_endpoint) > built-in default
 tcp://127.0.0.1:5557.
 
+Security tests validate that non-loopback endpoints are rejected.
+
 These tests run without pyzmq or any external ZMQ library.
 """
 
@@ -12,6 +14,8 @@ import json
 import os
 import sys
 from unittest import mock
+
+import pytest
 
 # Ensure the python/ directory is importable.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -185,3 +189,70 @@ class TestSystemJsonConfig:
             "Deprecated ai.zmq_endpoint key should not be present; "
             "use ai.zmq_pub_endpoint instead."
         )
+
+
+# ---------------------------------------------------------------------------
+# Security: Loopback endpoint validation
+# ---------------------------------------------------------------------------
+
+class TestLoopbackValidation:
+    """Validate that non-loopback endpoints are rejected for security."""
+
+    def test_validate_loopback_127_0_0_1(self):
+        """127.0.0.1 should be accepted as loopback."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("tcp://127.0.0.1:5557") is True
+
+    def test_validate_loopback_localhost(self):
+        """localhost should be accepted as loopback."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("tcp://localhost:5557") is True
+
+    def test_validate_loopback_ipv6(self):
+        """IPv6 loopback ([::1]) should be accepted."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("tcp://[::1]:5557") is True
+
+    def test_validate_loopback_ipc(self):
+        """IPC endpoints should always be accepted (local by nature)."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("ipc:///tmp/zmq.sock") is True
+
+    def test_reject_external_ip(self):
+        """External IP addresses should be rejected."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("tcp://192.168.1.1:5557") is False
+
+    def test_reject_0_0_0_0(self):
+        """0.0.0.0 (all interfaces) should be rejected."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("tcp://0.0.0.0:5557") is False
+
+    def test_reject_public_ip(self):
+        """Public IP addresses should be rejected."""
+        import ipc._config as cfg_mod
+        assert cfg_mod.validate_loopback_endpoint("tcp://8.8.8.8:5557") is False
+
+    def test_resolve_rejects_non_loopback_explicit(self, monkeypatch):
+        """Non-loopback explicit endpoint should raise ValueError."""
+        import ipc._config as cfg_mod
+        monkeypatch.delenv("ZMQ_PUB_ENDPOINT", raising=False)
+        with pytest.raises(ValueError, match="not a loopback address"):
+            cfg_mod.resolve_zmq_pub_endpoint("tcp://192.168.1.100:5557")
+
+    def test_resolve_rejects_non_loopback_env(self, monkeypatch):
+        """Non-loopback endpoint from env var should raise ValueError."""
+        import ipc._config as cfg_mod
+        monkeypatch.setenv("ZMQ_PUB_ENDPOINT", "tcp://10.0.0.1:5557")
+        with mock.patch("builtins.open", side_effect=OSError("not found")):
+            with pytest.raises(ValueError, match="not a loopback address"):
+                cfg_mod.resolve_zmq_pub_endpoint(None)
+
+    def test_invalid_endpoint_format(self):
+        """Invalid endpoint format should raise ValueError with helpful message."""
+        import ipc._config as cfg_mod
+        with pytest.raises(
+            ValueError,
+            match=r"Invalid endpoint format.*Expected tcp://host:port or ipc://path"
+        ):
+            cfg_mod.validate_loopback_endpoint("invalid://format")
