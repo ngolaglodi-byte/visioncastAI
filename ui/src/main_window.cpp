@@ -248,7 +248,6 @@ void MainWindow::onAiError(const QString& error) {
 }
 
 void MainWindow::onAiLog(const QString& line) {
-    // Forward to the monitoring panel if available.
     qDebug() << "[AI]" << line;
 }
 
@@ -261,6 +260,22 @@ void MainWindow::onAbout() {
 
 void MainWindow::onLicenseBlocked(const QString& reason) {
     showLicenseBlockScreen(reason);
+}
+
+bool MainWindow::showFirstRunLicenseActivation() {
+    // Blocking modal activation:
+    // User MUST activate to proceed. Returns true only if activation succeeded.
+    LicenseDialog dialog(licenseManager_, this);
+    const int rc = dialog.exec();
+
+    // We consider it "activated" if the dialog closes with Accepted AND we now have a key.
+    // (LicenseDialog should set the key via LicenseManager when activation succeeds.)
+    if (rc == QDialog::Accepted && !licenseManager_->licenseKey().isEmpty()) {
+        return true;
+    }
+
+    // If activation didn’t happen, refuse to continue.
+    return false;
 }
 
 void MainWindow::showLicenseBlockScreen(const QString& reason) {

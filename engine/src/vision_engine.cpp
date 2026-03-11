@@ -11,7 +11,9 @@
 
 #include "visioncast/vision_engine.h"
 
+#include <atomic>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <mutex>
 #include <thread>
@@ -67,35 +69,49 @@ struct VisionEngine::Impl {
     VisionEngineConfig config;
 
     // ---- Capture (OpenCV) -------------------------------------------
-    cv::VideoCapture  capture;
-    cv::Mat           cvFrame;         // Latest captured frame (BGR).
+    cv::VideoCapture   capture;
+    cv::Mat            cvFrame;         // Latest captured frame (BGR/BGRA/GRAY).
     mutable std::mutex captureMutex;
+
+    // Source tracking (for professional reopen/recovery)
+    bool        isFileSource = false;
+    int         lastDeviceIndex = 0;
+    std::string lastUri;
+
+    // Failure tracking / recovery throttling
+    int failCount = 0;
+    std::chrono::steady_clock::time_point lastRecoverAttempt{
+        std::chrono::steady_clock::now()
+    };
+
+    // EOF logging (avoid spam)
+    bool eofLogged = false;
 
     // ---- Frame buffer for the VideoFrame API ------------------------
     std::vector<uint8_t> frameBuffer;  // Pixel data backing store.
 
-    // ---- Preview (OpenCV fallback) ----------------------------------
+    // ---- Preview -----------------------------------------------------
     std::string windowName;
-    bool previewOpen = false;
+    bool        previewOpen = false;
 
     // ---- GPU pipeline -----------------------------------------------
     bool gpuReady = false;
 
 #ifdef HAS_OPENGL
-    GLFWwindow* glfwWindow   = nullptr;
-    GLuint      shaderProgram = 0;
-    GLuint      vao           = 0;
-    GLuint      vbo           = 0;
-    GLuint      ebo           = 0;
-    GLuint      previewTexture = 0;  // Persistent texture for the render loop.
+    GLFWwindow* glfwWindow      = nullptr;
+    GLuint      shaderProgram   = 0;
+    GLuint      vao             = 0;
+    GLuint      vbo             = 0;
+    GLuint      ebo             = 0;
+    GLuint      previewTexture  = 0;   // Persistent texture for render loop.
 #endif
 
     // ---- Render loop ------------------------------------------------
-    std::atomic<bool>                running{false};
-    VisionEngine::FrameCallback      frameCallback;
+    std::atomic<bool>           running{false};
+    VisionEngine::FrameCallback frameCallback;
 
     // ---- GPU Compositor ---------------------------------------------
-    GpuCompositor                    compositor;
+    GpuCompositor compositor;
 
     // ---- Helpers ----------------------------------------------------
 
@@ -112,14 +128,24 @@ struct VisionEngine::Impl {
         if (mat.channels() == 3) {
             cv::cvtColor(mat, bgra, cv::COLOR_BGR2BGRA);
         } else if (mat.channels() == 4) {
-            bgra = mat; // Already BGRA.
+            bgra = mat;
         } else {
             cv::cvtColor(mat, bgra, cv::COLOR_GRAY2BGRA);
         }
 
         const size_t bytes = static_cast<size_t>(bgra.total() * bgra.elemSize());
         frameBuffer.resize(bytes);
-        std::memcpy(frameBuffer.data(), bgra.data, bytes);
+
+        if (bgra.isContinuous()) {
+            std::memcpy(frameBuffer.data(), bgra.data, bytes);
+        } else {
+            const size_t rowBytes = static_cast<size_t>(bgra.cols * bgra.elemSize());
+            for (int y = 0; y < bgra.rows; ++y) {
+                std::memcpy(frameBuffer.data() + static_cast<size_t>(y) * rowBytes,
+                            bgra.ptr(y),
+                            rowBytes);
+            }
+        }
 
         out.data        = frameBuffer.data();
         out.width       = bgra.cols;
@@ -252,7 +278,7 @@ VisionEngine::~VisionEngine() {
 bool VisionEngine::initialize() {
     const auto& cfg = impl_->config;
 
-    // 1. Open capture source.
+    // 1) Open capture source.
     bool captureOk = cfg.captureUri.empty()
                          ? openCapture(cfg.captureDeviceIndex)
                          : openCapture(cfg.captureUri);
@@ -261,14 +287,25 @@ bool VisionEngine::initialize() {
         return false;
     }
 
-    // 2. Create preview window.
-    if (!createPreviewWindow(cfg.windowTitle, cfg.previewWidth, cfg.previewHeight)) {
+    // Professional: if capture reports real dimensions, use them for preview
+    {
+        std::lock_guard<std::mutex> lock(impl_->captureMutex);
+        const int capW = static_cast<int>(impl_->capture.get(cv::CAP_PROP_FRAME_WIDTH));
+        const int capH = static_cast<int>(impl_->capture.get(cv::CAP_PROP_FRAME_HEIGHT));
+        if (capW > 0 && capH > 0) {
+            impl_->config.previewWidth  = capW;
+            impl_->config.previewHeight = capH;
+        }
+    }
+
+    // 2) Create preview window.
+    if (!createPreviewWindow(cfg.windowTitle, impl_->config.previewWidth, impl_->config.previewHeight)) {
         std::cerr << "[VisionEngine] Failed to create preview window." << std::endl;
         closeCapture();
         return false;
     }
 
-    // 3. GPU pipeline (optional).
+    // 3) GPU pipeline (optional).
     if (cfg.enableGpu) {
         if (!initGpuPipeline()) {
             std::cerr << "[VisionEngine] GPU pipeline unavailable; using CPU fallback."
@@ -276,11 +313,11 @@ bool VisionEngine::initialize() {
         }
     }
 
-    // 4. GPU compositor (works in both CPU and GPU modes).
-    impl_->compositor.initialize(cfg.previewWidth, cfg.previewHeight);
+    // 4) GPU compositor (works in both CPU and GPU modes).
+    impl_->compositor.initialize(impl_->config.previewWidth, impl_->config.previewHeight);
 
     std::cout << "[VisionEngine] Initialized ("
-              << cfg.previewWidth << "x" << cfg.previewHeight
+              << impl_->config.previewWidth << "x" << impl_->config.previewHeight
               << " @ " << cfg.targetFps << " fps)." << std::endl;
     return true;
 }
@@ -300,27 +337,118 @@ void VisionEngine::shutdown() {
 
 bool VisionEngine::openCapture(int deviceIndex) {
     std::lock_guard<std::mutex> lock(impl_->captureMutex);
+
+    impl_->isFileSource    = false;
+    impl_->lastDeviceIndex = deviceIndex;
+    impl_->lastUri.clear();
+    impl_->failCount = 0;
+    impl_->eofLogged = false;
+
     if (impl_->capture.isOpened()) {
         impl_->capture.release();
     }
+
+#ifdef _WIN32
+    // Prefer DirectShow on Windows for webcams.
+    bool ok = impl_->capture.open(deviceIndex, cv::CAP_DSHOW);
+    if (!ok) ok = impl_->capture.open(deviceIndex);
+#else
     bool ok = impl_->capture.open(deviceIndex);
-    if (ok) {
-        std::cout << "[VisionEngine] Capture opened (device " << deviceIndex << ")."
-                  << std::endl;
-    }
-    return ok;
+#endif
+
+    if (!ok) return false;
+
+#ifdef _WIN32
+    // Force MJPG when possible (many webcams are more stable with MJPG).
+    impl_->capture.set(cv::CAP_PROP_FOURCC,
+                       cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
+#endif
+
+    // Request target settings (device may ignore)
+    impl_->capture.set(cv::CAP_PROP_FRAME_WIDTH,  impl_->config.previewWidth);
+    impl_->capture.set(cv::CAP_PROP_FRAME_HEIGHT, impl_->config.previewHeight);
+    impl_->capture.set(cv::CAP_PROP_FPS,          impl_->config.targetFps);
+
+    // Diagnostics
+    const double w = impl_->capture.get(cv::CAP_PROP_FRAME_WIDTH);
+    const double h = impl_->capture.get(cv::CAP_PROP_FRAME_HEIGHT);
+    const double fps = impl_->capture.get(cv::CAP_PROP_FPS);
+    const double fourcc = impl_->capture.get(cv::CAP_PROP_FOURCC);
+
+    char fcc[] = {
+        static_cast<char>(static_cast<int>(fourcc) & 0xFF),
+        static_cast<char>((static_cast<int>(fourcc) >> 8) & 0xFF),
+        static_cast<char>((static_cast<int>(fourcc) >> 16) & 0xFF),
+        static_cast<char>((static_cast<int>(fourcc) >> 24) & 0xFF),
+        0
+    };
+
+    std::cout << "[VisionEngine] Capture opened (device " << deviceIndex << ")." << std::endl;
+    std::cout << "[VisionEngine] Capture props: " << w << "x" << h
+              << " @ " << fps << " fps"
+              << " fourcc=" << fcc
+              << std::endl;
+
+    return true;
 }
 
 bool VisionEngine::openCapture(const std::string& uri) {
     std::lock_guard<std::mutex> lock(impl_->captureMutex);
+
+    impl_->isFileSource = true;
+    impl_->lastUri = uri;
+    impl_->failCount = 0;
+    impl_->eofLogged = false;
+
     if (impl_->capture.isOpened()) {
         impl_->capture.release();
     }
-    bool ok = impl_->capture.open(uri);
-    if (ok) {
-        std::cout << "[VisionEngine] Capture opened (" << uri << ")." << std::endl;
+
+    // Normalize Windows paths for OpenCV: backslashes -> slashes.
+    std::string norm = uri;
+    for (char& c : norm) {
+        if (c == '\\') c = '/';
     }
-    return ok;
+
+    bool ok = false;
+
+#ifdef _WIN32
+    // Prefer FFMPEG for files/URIs on Windows when available.
+    ok = impl_->capture.open(norm, cv::CAP_FFMPEG);
+    if (!ok) ok = impl_->capture.open(norm);  // AUTO fallback
+    if (!ok) ok = impl_->capture.open(norm, cv::CAP_MSMF);
+    if (!ok) ok = impl_->capture.open(norm, cv::CAP_DSHOW);
+#else
+    ok = impl_->capture.open(norm);
+#endif
+
+    if (!ok) {
+        std::cerr << "[VisionEngine] Could not open capture URI: " << uri << std::endl;
+#ifdef CV_VERSION
+        std::cerr << "[VisionEngine] OpenCV version: " << CV_VERSION << std::endl;
+#endif
+        std::cerr << "[VisionEngine] Tried: "
+#ifdef _WIN32
+                  << "FFMPEG -> AUTO -> MSMF -> DSHOW"
+#else
+                  << "AUTO"
+#endif
+                  << std::endl;
+        return false;
+    }
+
+    std::cout << "[VisionEngine] Capture opened (" << uri << ")." << std::endl;
+
+    const double w = impl_->capture.get(cv::CAP_PROP_FRAME_WIDTH);
+    const double h = impl_->capture.get(cv::CAP_PROP_FRAME_HEIGHT);
+    const double fps = impl_->capture.get(cv::CAP_PROP_FPS);
+    const double frameCount = impl_->capture.get(cv::CAP_PROP_FRAME_COUNT);
+
+    std::cout << "[VisionEngine] Capture props: " << w << "x" << h << " @ " << fps << " fps"
+              << " frames=" << frameCount
+              << std::endl;
+
+    return true;
 }
 
 void VisionEngine::closeCapture() {
@@ -338,14 +466,69 @@ bool VisionEngine::isCaptureOpen() const {
 
 bool VisionEngine::grabFrame(VideoFrame& outFrame) {
     std::lock_guard<std::mutex> lock(impl_->captureMutex);
+
     if (!impl_->capture.isOpened()) {
         outFrame = VideoFrame{};
         return false;
     }
-    if (!impl_->capture.read(impl_->cvFrame)) {
+
+    if (!impl_->capture.read(impl_->cvFrame) || impl_->cvFrame.empty()) {
+        const double pos   = impl_->capture.get(cv::CAP_PROP_POS_FRAMES);
+        const double count = impl_->capture.get(cv::CAP_PROP_FRAME_COUNT);
+
+        // Professional file behavior: configurable on EOF (OBS-like loop on/off)
+        if (impl_->isFileSource && count > 0 && pos >= count - 1) {
+            if (impl_->config.loopMedia) {
+                impl_->capture.set(cv::CAP_PROP_POS_FRAMES, 0);
+                if (impl_->capture.read(impl_->cvFrame) && !impl_->cvFrame.empty()) {
+                    impl_->failCount = 0;
+                    impl_->matToVideoFrame(impl_->cvFrame, outFrame);
+                    return true;
+                }
+            } else {
+                if (!impl_->eofLogged) {
+                    impl_->eofLogged = true;
+                    std::cout << "[VisionEngine] End of file reached; stopping (loopMedia=false)."
+                              << std::endl;
+                }
+                impl_->running = false;
+                outFrame = VideoFrame{};
+                return false;
+            }
+        }
+
+        impl_->failCount++;
+
+        // Throttle log (every 30 fails)
+        if (impl_->failCount == 1 || (impl_->failCount % 30) == 0) {
+            std::cerr << "[VisionEngine] WARN: capture.read() failed/empty (count="
+                      << impl_->failCount << "). pos=" << pos << " count=" << count
+                      << std::endl;
+        }
+
+        // Professional webcam behavior: attempt recovery with backoff
+        if (!impl_->isFileSource && impl_->failCount >= 60) {
+            auto now = std::chrono::steady_clock::now();
+            if (now - impl_->lastRecoverAttempt > std::chrono::seconds(2)) {
+                impl_->lastRecoverAttempt = now;
+                std::cerr << "[VisionEngine] Attempting webcam recovery (re-open device "
+                          << impl_->lastDeviceIndex << ")." << std::endl;
+#ifdef _WIN32
+                impl_->capture.release();
+                impl_->capture.open(impl_->lastDeviceIndex, cv::CAP_DSHOW);
+#else
+                impl_->capture.release();
+                impl_->capture.open(impl_->lastDeviceIndex);
+#endif
+                impl_->failCount = 0;
+            }
+        }
+
         outFrame = VideoFrame{};
         return false;
     }
+
+    impl_->failCount = 0;
     impl_->matToVideoFrame(impl_->cvFrame, outFrame);
     return true;
 }
@@ -354,12 +537,11 @@ bool VisionEngine::grabFrame(VideoFrame& outFrame) {
 // Preview Window
 // =====================================================================
 
-bool VisionEngine::createPreviewWindow(const std::string& title,
-                                       int width, int height) {
+bool VisionEngine::createPreviewWindow(const std::string& title, int width, int height) {
 #ifdef HAS_OPENGL
     // When using the GPU path, the GLFW window IS the preview window.
     // It is created in initGpuPipeline(), so just record the intent here.
-    impl_->windowName  = title;
+    impl_->windowName = title;
     impl_->config.previewWidth  = width;
     impl_->config.previewHeight = height;
     impl_->previewOpen = true;
@@ -370,8 +552,7 @@ bool VisionEngine::createPreviewWindow(const std::string& title,
     cv::namedWindow(title, cv::WINDOW_NORMAL);
     cv::resizeWindow(title, width, height);
     impl_->previewOpen = true;
-    std::cout << "[VisionEngine] Preview window created (OpenCV fallback)."
-              << std::endl;
+    std::cout << "[VisionEngine] Preview window created (OpenCV fallback)." << std::endl;
     return true;
 #endif
 }
@@ -389,8 +570,7 @@ void VisionEngine::destroyPreviewWindow() {
 
 bool VisionEngine::isPreviewOpen() const {
 #ifdef HAS_OPENGL
-    return impl_->glfwWindow != nullptr &&
-           !glfwWindowShouldClose(impl_->glfwWindow);
+    return impl_->glfwWindow != nullptr && !glfwWindowShouldClose(impl_->glfwWindow);
 #else
     return impl_->previewOpen;
 #endif
@@ -402,11 +582,11 @@ bool VisionEngine::isPreviewOpen() const {
 
 bool VisionEngine::initGpuPipeline() {
 #ifdef HAS_OPENGL
-    // --- GLFW init ---
     if (!glfwInit()) {
         std::cerr << "[VisionEngine] glfwInit failed." << std::endl;
         return false;
     }
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -418,16 +598,18 @@ bool VisionEngine::initGpuPipeline() {
         impl_->config.previewWidth,
         impl_->config.previewHeight,
         impl_->windowName.c_str(),
-        nullptr, nullptr);
+        nullptr,
+        nullptr);
+
     if (!impl_->glfwWindow) {
         std::cerr << "[VisionEngine] glfwCreateWindow failed." << std::endl;
         glfwTerminate();
         return false;
     }
-    glfwMakeContextCurrent(impl_->glfwWindow);
-    glfwSwapInterval(0); // no vsync – we govern timing ourselves
 
-    // --- GLEW init ---
+    glfwMakeContextCurrent(impl_->glfwWindow);
+    glfwSwapInterval(0);  // no vsync – we govern timing ourselves
+
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
         std::cerr << "[VisionEngine] glewInit failed." << std::endl;
@@ -438,9 +620,8 @@ bool VisionEngine::initGpuPipeline() {
     }
 
     glViewport(0, 0, impl_->config.previewWidth, impl_->config.previewHeight);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
 
-    // --- Shader program ---
     if (!impl_->buildShaderProgram()) {
         std::cerr << "[VisionEngine] Shader build failed." << std::endl;
         glfwDestroyWindow(impl_->glfwWindow);
@@ -449,10 +630,8 @@ bool VisionEngine::initGpuPipeline() {
         return false;
     }
 
-    // --- Full-screen quad geometry ---
     impl_->buildFullscreenQuad();
 
-    // --- Persistent preview texture ---
     glGenTextures(1, &impl_->previewTexture);
     glBindTexture(GL_TEXTURE_2D, impl_->previewTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -464,7 +643,6 @@ bool VisionEngine::initGpuPipeline() {
     std::cout << "[VisionEngine] GPU pipeline initialized (OpenGL 3.3)." << std::endl;
     return true;
 #else
-    // No OpenGL support compiled in.
     impl_->gpuReady = false;
     return false;
 #endif
@@ -490,6 +668,7 @@ void VisionEngine::shutdownGpuPipeline() {
         impl_->glfwWindow = nullptr;
         glfwTerminate();
     }
+
     impl_->gpuReady = false;
     std::cout << "[VisionEngine] GPU pipeline shut down." << std::endl;
 #endif
@@ -503,13 +682,12 @@ bool VisionEngine::isGpuReady() const {
 // GPU Textures
 // =====================================================================
 
-GpuTexture VisionEngine::uploadTexture(const uint8_t* data,
-                                       int width, int height, int channels) {
+GpuTexture VisionEngine::uploadTexture(const uint8_t* data, int width, int height, int channels) {
     GpuTexture tex;
 #ifdef HAS_OPENGL
     if (!impl_->gpuReady || data == nullptr) return tex;
 
-    GLenum format = (channels == 4) ? GL_BGRA : GL_BGR;
+    const GLenum format = (channels == 4) ? GL_BGRA : GL_BGR;
 
     glGenTextures(1, &tex.id);
     glBindTexture(GL_TEXTURE_2D, tex.id);
@@ -529,21 +707,17 @@ GpuTexture VisionEngine::uploadTexture(const uint8_t* data,
     return tex;
 }
 
-bool VisionEngine::updateTexture(GpuTexture& texture,
-                                 const uint8_t* data,
-                                 int width, int height, int channels) {
+bool VisionEngine::updateTexture(GpuTexture& texture, const uint8_t* data, int width, int height, int channels) {
 #ifdef HAS_OPENGL
     if (!impl_->gpuReady || !texture.valid || data == nullptr) return false;
 
-    GLenum format = (channels == 4) ? GL_BGRA : GL_BGR;
+    const GLenum format = (channels == 4) ? GL_BGRA : GL_BGR;
 
     glBindTexture(GL_TEXTURE_2D, texture.id);
     if (texture.width == width && texture.height == height) {
-        // Same size → sub-image upload (avoids reallocation on GPU).
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
                         format, GL_UNSIGNED_BYTE, data);
     } else {
-        // Size changed → full re-upload.
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
                      format, GL_UNSIGNED_BYTE, data);
         texture.width  = width;
@@ -571,7 +745,7 @@ void VisionEngine::deleteTexture(GpuTexture& texture) {
 
 void VisionEngine::run() {
     if (impl_->running.exchange(true)) {
-        return; // Already running.
+        return;  // Already running.
     }
 
     const auto frameDuration = std::chrono::microseconds(
@@ -580,57 +754,56 @@ void VisionEngine::run() {
     std::cout << "[VisionEngine] Render loop started." << std::endl;
 
     while (impl_->running) {
-        auto loopStart = std::chrono::steady_clock::now();
+        const auto loopStart = std::chrono::steady_clock::now();
 
-        // --- 1. Capture ---
+        // 1) Capture
         VideoFrame frame{};
         grabFrame(frame);
 
-        // --- 2. Per-frame callback (user processing) ---
+        // 2) Callback
         if (frame.data && impl_->frameCallback) {
             impl_->frameCallback(frame);
         }
 
-        // --- 2b. Advance compositor clocks ---
+        // 3) Advance compositor clocks
         {
-            auto now = std::chrono::steady_clock::now();
-            double deltaMs = std::chrono::duration<double, std::milli>(
-                                 now - loopStart).count();
+            const auto now = std::chrono::steady_clock::now();
+            const double deltaMs =
+                std::chrono::duration<double, std::milli>(now - loopStart).count();
             impl_->compositor.update(deltaMs);
         }
 
-        // --- 3. Display / Render ---
+        // 4) Display / Render
 #ifdef HAS_OPENGL
         if (impl_->gpuReady && impl_->glfwWindow) {
             if (glfwWindowShouldClose(impl_->glfwWindow)) {
                 impl_->running = false;
                 break;
             }
+
             if (frame.data) {
-                // Upload frame to the persistent preview texture.
-                int ch = (frame.format == PixelFormat::BGRA8) ? 4 : 3;
-                GLenum fmt = (ch == 4) ? GL_BGRA : GL_BGR;
+                const int ch = (frame.format == PixelFormat::BGRA8) ? 4 : 3;
+                const GLenum fmt = (ch == 4) ? GL_BGRA : GL_BGR;
+
                 glBindTexture(GL_TEXTURE_2D, impl_->previewTexture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
                              frame.width, frame.height, 0,
                              fmt, GL_UNSIGNED_BYTE, frame.data);
             }
+
             impl_->renderFrame(impl_->previewTexture);
 
-            // Composite overlay layers on top (GPU path).
             if (impl_->compositor.isReady()) {
-                impl_->compositor.compositeGpu(impl_->previewTexture,
-                                               frame.width, frame.height);
+                impl_->compositor.compositeGpu(impl_->previewTexture, frame.width, frame.height);
             }
         }
 #else
-        // CPU compositor + OpenCV highgui fallback.
         if (frame.data && impl_->compositor.isReady()) {
             impl_->compositor.composite(frame);
         }
         if (impl_->previewOpen && !impl_->cvFrame.empty()) {
             cv::imshow(impl_->windowName, impl_->cvFrame);
-            int key = cv::waitKey(1);
+            const int key = cv::waitKey(1);
             if (key == 27 /* ESC */ || key == 'q') {
                 impl_->running = false;
                 break;
@@ -638,8 +811,8 @@ void VisionEngine::run() {
         }
 #endif
 
-        // --- 4. Frame-rate governor ---
-        auto elapsed = std::chrono::steady_clock::now() - loopStart;
+        // 5) Frame-rate governor
+        const auto elapsed = std::chrono::steady_clock::now() - loopStart;
         if (elapsed < frameDuration) {
             std::this_thread::sleep_for(frameDuration - elapsed);
         }

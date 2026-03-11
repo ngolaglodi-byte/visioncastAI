@@ -1,0 +1,8 @@
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\Win32\Release\av_view_sharpen_csharp.exe.config
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\Win32\Release\av_view_sharpen_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\Win32\Release\av_view_sharpen_csharp.pdb
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view_sharpen\obj\x86\Release\AVViewSharpen.mainForm.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view_sharpen\obj\x86\Release\av_view_sharpen_csharp.Properties.Resources.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view_sharpen\obj\x86\Release\av_view_sharpen.csproj.GenerateResource.Cache
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view_sharpen\obj\x86\Release\av_view_sharpen_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view_sharpen\obj\x86\Release\av_view_sharpen_csharp.pdb

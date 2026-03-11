@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if [ `id -u` != "0" ]; then
+    echo "error: You must have superuser privileges to run this script."
+    exit 13
+fi
+
+# invoke rmmod with all arguments we got
+/sbin/rmmod -s ajardma
+if [ $? -eq 0 ]; then 
+    echo "unloaded ajardma driver module"
+fi
+/sbin/rmmod -s ajantv2
+if [ $? -eq 0 ]; then 
+    echo "unloaded ajantv2 driver module"
+fi

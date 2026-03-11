@@ -1,0 +1,8 @@
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\av_view_csharp.exe.config
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\av_view_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\av_view_csharp.pdb
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view\obj\x64\Release\AVView.mainForm.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view\obj\x64\Release\av_view_csharp.Properties.Resources.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view\obj\x64\Release\av_view.csproj.GenerateResource.Cache
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view\obj\x64\Release\av_view_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\av_view\obj\x64\Release\av_view_csharp.pdb

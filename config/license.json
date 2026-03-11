@@ -1,5 +1,5 @@
 {
-  "api_url": "",
-  "api_key": "",
-  "license_key": ""
+    "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrY2NoY3RybXJwZHlzZXBsYnZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMjExNDQsImV4cCI6MjA4NjY5NzE0NH0.rdCOcwqBd4DYEEbI9rU8kqotJ6VdWOLRYMEM5w5aD2s",
+    "api_url": "https://qkcchctrmrpdyseplbvb.supabase.co/functions/v1/license-api",
+    "license_key": "OHL8-F143-3UZM-DS50"
 }

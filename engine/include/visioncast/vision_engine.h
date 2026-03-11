@@ -35,6 +35,11 @@ struct VisionEngineConfig {
     std::string windowTitle = "VisionCast Preview"; ///< Preview window title.
     double targetFps  = 25.0;         ///< Target frame rate for the render loop.
     bool enableGpu    = true;         ///< Attempt GPU pipeline; fall back to CPU if unavailable.
+
+    // OBS-like media-source behavior:
+    // - true: file sources loop on EOF
+    // - false: file sources stop the render loop on EOF (clean end)
+    bool loopMedia = true;
 };
 
 // -----------------------------------------------------------------

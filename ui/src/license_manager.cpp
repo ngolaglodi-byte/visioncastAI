@@ -19,6 +19,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QSysInfo>
+#include <QUrl>
 
 namespace visioncast_ui {
 
@@ -42,7 +43,7 @@ bool LicenseManager::loadConfig(const QString& configPath) {
         return false;
 
     QJsonParseError err;
-    auto doc = QJsonDocument::fromJson(file.readAll(), &err);
+    const auto doc = QJsonDocument::fromJson(file.readAll(), &err);
     file.close();
     if (err.error != QJsonParseError::NoError)
         return false;
@@ -63,6 +64,7 @@ bool LicenseManager::saveConfig(const QString& configPath) const {
     QFile file(configPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
+
     file.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
     file.close();
     return true;
@@ -71,39 +73,43 @@ bool LicenseManager::saveConfig(const QString& configPath) const {
 bool LicenseManager::loadFromEnvironment() {
     if (!LicenseConfig::load())
         return false;
+
     apiUrl_ = LicenseConfig::apiUrl();
     apiKey_ = LicenseConfig::apiKey();
+
     LicenseSecureLogger::logInfo(
         QStringLiteral("Configuration loaded from environment variables"));
     return true;
 }
 
-void LicenseManager::setApiUrl(const QString& url)  { apiUrl_ = url; }
-QString LicenseManager::apiUrl() const               { return apiUrl_; }
+void LicenseManager::setApiUrl(const QString& url) { apiUrl_ = url; }
+QString LicenseManager::apiUrl() const { return apiUrl_; }
 
-void LicenseManager::setApiKey(const QString& key)   { apiKey_ = key; }
+void LicenseManager::setApiKey(const QString& key) { apiKey_ = key; }
+
+void LicenseManager::setLicenseKey(const QString& key) { licenseKey_ = key; }
 
 // ── Machine ID ──────────────────────────────────────────────────────
 
 QString LicenseManager::machineId() const { return machineId_; }
 
 QString LicenseManager::generateMachineId() {
-    // Build a stable fingerprint from machine-unique attributes.
     QString raw = QSysInfo::machineUniqueId();
     if (raw.isEmpty()) {
-        // Fallback: combine hostname + kernel + CPU architecture.
         raw = QSysInfo::machineHostName()
             + QSysInfo::kernelType()
             + QSysInfo::currentCpuArchitecture();
     }
     return QString::fromLatin1(
-        QCryptographicHash::hash(raw.toUtf8(), QCryptographicHash::Sha256)
-            .toHex());
+        QCryptographicHash::hash(raw.toUtf8(), QCryptographicHash::Sha256).toHex());
 }
 
 // ── License Operations ──────────────────────────────────────────────
 
 void LicenseManager::activateKey(const QString& licenseKey) {
+    // Keep local copy so saving config works even if server doesn't return "key"
+    licenseKey_ = licenseKey;
+
     QJsonObject payload;
     payload["action"]     = QStringLiteral("activate_key");
     payload["key"]        = licenseKey;
@@ -112,6 +118,9 @@ void LicenseManager::activateKey(const QString& licenseKey) {
 }
 
 void LicenseManager::validateKey(const QString& licenseKey) {
+    // Keep local copy so saving config works even if server doesn't return "key"
+    licenseKey_ = licenseKey;
+
     QJsonObject payload;
     payload["action"]     = QStringLiteral("validate_key");
     payload["key"]        = licenseKey;
@@ -120,6 +129,9 @@ void LicenseManager::validateKey(const QString& licenseKey) {
 }
 
 void LicenseManager::deactivateKey(const QString& licenseKey) {
+    // Keep local copy (will be cleared on success)
+    licenseKey_ = licenseKey;
+
     QJsonObject payload;
     payload["action"]     = QStringLiteral("deactivate_key");
     payload["key"]        = licenseKey;
@@ -128,6 +140,9 @@ void LicenseManager::deactivateKey(const QString& licenseKey) {
 }
 
 void LicenseManager::checkStatus(const QString& licenseKey) {
+    // Keep local copy so saving config works even if server doesn't return "key"
+    licenseKey_ = licenseKey;
+
     QJsonObject payload;
     payload["action"]     = QStringLiteral("check_status");
     payload["key"]        = licenseKey;
@@ -158,15 +173,12 @@ bool LicenseManager::tryOfflineGrace() {
         return true;
     }
 
-    LicenseSecureLogger::logError(
-        QStringLiteral("offline grace period expired"));
+    LicenseSecureLogger::logError(QStringLiteral("offline grace period expired"));
     status_ = LicenseStatus::Expired;
     return false;
 }
 
-QDateTime LicenseManager::offlineValidUntil() const {
-    return offlineValidUntil_;
-}
+QDateTime LicenseManager::offlineValidUntil() const { return offlineValidUntil_; }
 
 // ── Blocking Check ──────────────────────────────────────────────────
 
@@ -191,20 +203,27 @@ QString LicenseManager::blockReason() const {
 
 // ── Current State ───────────────────────────────────────────────────
 
-LicenseManager::LicenseStatus LicenseManager::status() const {
-    return status_;
-}
-
+LicenseManager::LicenseStatus LicenseManager::status() const { return status_; }
 QString LicenseManager::licenseKey() const { return licenseKey_; }
-
-bool LicenseManager::isLicensed() const {
-    return status_ == LicenseStatus::Valid;
-}
+bool LicenseManager::isLicensed() const { return status_ == LicenseStatus::Valid; }
 
 // ── Network ─────────────────────────────────────────────────────────
 
-void LicenseManager::sendRequest(const QJsonObject& payload,
-                                 const QString& action) {
+static QUrl normalizeApiUrl(const QString& apiUrl) {
+    QUrl url(apiUrl);
+
+    // If config accidentally contains only the Supabase project ref, help out:
+    // e.g. "qkcchctrmrpdyseplbvb" -> https://qkcchctrmrpdyseplbvb.supabase.co
+    if (!url.isValid() || url.scheme().isEmpty()) {
+        if (!apiUrl.trimmed().isEmpty() && !apiUrl.contains("://")) {
+            url = QUrl(QStringLiteral("https://%1.supabase.co").arg(apiUrl.trimmed()));
+        }
+    }
+
+    return url;
+}
+
+void LicenseManager::sendRequest(const QJsonObject& payload, const QString& action) {
     if (apiUrl_.isEmpty() || apiKey_.isEmpty()) {
         emit networkError(tr("License API is not configured. "
                              "Please set LICENSE_API_URL and LICENSE_API_KEY "
@@ -214,13 +233,34 @@ void LicenseManager::sendRequest(const QJsonObject& payload,
 
     pendingAction_ = action;
 
-    QNetworkRequest request{QUrl(apiUrl_)};
+    QUrl url = normalizeApiUrl(apiUrl_);
+    if (!url.isValid()) {
+        emit networkError(tr("Invalid License API URL."));
+        pendingAction_.clear();
+        return;
+    }
+
+    // If user passed base project URL, append default function path.
+    if (url.path().isEmpty() || url.path() == "/") {
+        url.setPath(QStringLiteral("/functions/v1/license-api"));
+    }
+
+    QNetworkRequest request{url};
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
-    request.setRawHeader("apikey", apiKey_.toUtf8());
+    request.setRawHeader("Accept", "application/json");
 
-    networkManager_->post(request,
-                          QJsonDocument(payload).toJson(QJsonDocument::Compact));
+    // Supabase recommended headers
+    request.setRawHeader("apikey", apiKey_.toUtf8());
+    request.setRawHeader("Authorization", QByteArray("Bearer ") + apiKey_.toUtf8());
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    request.setTransferTimeout(15000); // 15s
+#endif
+
+    networkManager_->post(
+        request,
+        QJsonDocument(payload).toJson(QJsonDocument::Compact));
 }
 
 void LicenseManager::onReplyFinished(QNetworkReply* reply) {
@@ -229,31 +269,38 @@ void LicenseManager::onReplyFinished(QNetworkReply* reply) {
     if (reply->error() != QNetworkReply::NoError) {
         LicenseSecureLogger::logError(reply->errorString());
         emit networkError(reply->errorString());
+        pendingAction_.clear();
         return;
     }
+
+    const QByteArray body = reply->readAll();
 
     QJsonParseError err;
-    auto doc = QJsonDocument::fromJson(reply->readAll(), &err);
+    const auto doc = QJsonDocument::fromJson(body, &err);
     if (err.error != QJsonParseError::NoError) {
         emit networkError(tr("Invalid JSON response from license server."));
+        pendingAction_.clear();
         return;
     }
 
-    const auto obj     = doc.object();
+    const auto obj = doc.object();
     const bool success = obj.value("success").toBool(false);
     const QString msg  = obj.value("message").toString();
 
-    // Map string status to enum.
     auto mapStatus = [](const QString& s) -> LicenseStatus {
-        if (s == "valid"    || s == "active")    return LicenseStatus::Valid;
-        if (s == "expired")                      return LicenseStatus::Expired;
-        if (s == "suspended")                    return LicenseStatus::Suspended;
+        if (s == "valid" || s == "active") return LicenseStatus::Valid;
+        if (s == "expired") return LicenseStatus::Expired;
+        if (s == "suspended") return LicenseStatus::Suspended;
         return LicenseStatus::Invalid;
     };
 
     if (pendingAction_ == "activate_key") {
         if (success) {
-            licenseKey_ = obj.value("key").toString(licenseKey_);
+            // If server returns "key", use it; otherwise keep the typed key we stored earlier.
+            const QString returnedKey = obj.value("key").toString();
+            if (!returnedKey.isEmpty())
+                licenseKey_ = returnedKey;
+
             status_ = LicenseStatus::Valid;
             refreshOfflineDeadline();
             LicenseSecureLogger::logValidation(QStringLiteral("active"));
@@ -267,10 +314,13 @@ void LicenseManager::onReplyFinished(QNetworkReply* reply) {
         LicenseStatus st = mapStatus(obj.value("status").toString());
         const bool valid = success && st == LicenseStatus::Valid;
         status_ = valid ? LicenseStatus::Valid : st;
+
         LicenseSecureLogger::logValidation(
             obj.value("status").toString(QStringLiteral("unknown")));
+
         if (valid)
             refreshOfflineDeadline();
+
         emit validationCompleted(valid, msg);
 
         if (shouldBlockApplication()) {
@@ -299,14 +349,14 @@ void LicenseManager::onReplyFinished(QNetworkReply* reply) {
 // ── Private Helpers ─────────────────────────────────────────────────
 
 void LicenseManager::refreshOfflineDeadline() {
-    offlineValidUntil_ = QDateTime::currentDateTimeUtc().addDays(
-        kOfflineGraceDays);
+    offlineValidUntil_ = QDateTime::currentDateTimeUtc().addDays(kOfflineGraceDays);
     persistLicenseDat();
 }
 
 void LicenseManager::persistLicenseDat() const {
     if (licenseKey_.isEmpty())
         return;
+
     if (!storage_->save(QLatin1String(kLicenseDatPath),
                         licenseKey_, offlineValidUntil_)) {
         LicenseSecureLogger::logError(

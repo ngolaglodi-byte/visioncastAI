@@ -2,14 +2,23 @@
   "name": "visioncast-ai",
   "version": "0.1.0",
   "description": "VisionCast AI broadcast production suite",
+  "builtin-baseline": "1e199d32ad53aab1defda61ce41c380302e3f95c",
   "dependencies": [
-    "opencv4",
+    {
+      "name": "opencv4",
+      "features": [ "ffmpeg" ]
+    },
+
     "zeromq",
     "cppzmq",
     "ffmpeg",
     "freetype",
     "glfw3",
     "glew",
-    "nlohmann-json"
+    "nlohmann-json",
+
+    "qtbase",
+    "qtsvg",
+    "qtdeclarative"
   ]
 }

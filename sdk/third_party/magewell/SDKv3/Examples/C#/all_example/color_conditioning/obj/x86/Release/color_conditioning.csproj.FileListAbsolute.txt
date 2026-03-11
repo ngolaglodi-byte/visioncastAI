@@ -1,0 +1,7 @@
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\Win32\Release\color_conditioning_csharp.exe.config
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\Win32\Release\color_conditioning_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\Win32\Release\color_conditioning_csharp.pdb
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\color_conditioning\obj\x86\Release\color_conditioning_csharp.Properties.Resources.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\color_conditioning\obj\x86\Release\color_conditioning.csproj.GenerateResource.Cache
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\color_conditioning\obj\x86\Release\color_conditioning_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\color_conditioning\obj\x86\Release\color_conditioning_csharp.pdb

@@ -1,0 +1,8 @@
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\gpu_encode_gui_csharp.exe.config
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\gpu_encode_gui_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\gpu_encode_gui_csharp.pdb
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\gpu_encode_gui\obj\x64\Release\GpuEncodeGui.mainForm.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\gpu_encode_gui\obj\x64\Release\gpu_encode_gui_csharp.Properties.Resources.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\gpu_encode_gui\obj\x64\Release\gpu_encode_gui.csproj.GenerateResource.Cache
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\gpu_encode_gui\obj\x64\Release\gpu_encode_gui_csharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\C#\all_example\gpu_encode_gui\obj\x64\Release\gpu_encode_gui_csharp.pdb

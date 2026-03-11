@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\av_view.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_glfw\imgui_impl_glfw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_opengl3\imgui_impl_opengl3.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\dsound_player\dsound_player.cpp">
+      <Filter>dsound_player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\mw_capture\mw_capture.cpp">
+      <Filter>mw_capture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\mw_capture\mw_capture_eco.cpp">
+      <Filter>mw_capture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\mw_capture\mw_capture_pro.cpp">
+      <Filter>mw_capture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\mw_capture\mw_capture_usb.cpp">
+      <Filter>mw_capture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\opengl_render\opengl_render.cpp">
+      <Filter>opengl_render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\ring_buffer\ring_buffer.cpp">
+      <Filter>ring_buffer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\OpenGL\gl3w\GL\glcorearb.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_glfw\imgui_impl_glfw.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imgui_opengl3\imgui_impl_opengl3.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imstb_rectpack.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imstb_textedit.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\3rdPart\imgui_1_71\imstb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\dsound_player\dsound_player.h">
+      <Filter>dsound_player</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\mw_capture\mw_capture.h">
+      <Filter>mw_capture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\mw_capture\mw_capture_eco.h">
+      <Filter>mw_capture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\mw_capture\mw_capture_pro.h">
+      <Filter>mw_capture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\mw_capture\mw_capture_usb.h">
+      <Filter>mw_capture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\opengl_render\opengl_render.h">
+      <Filter>opengl_render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\opengl_render\opengl_shader.h">
+      <Filter>opengl_render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\ring_buffer\ring_buffer.h">
+      <Filter>ring_buffer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="dsound_player">
+      <UniqueIdentifier>{46dda192-53ec-4394-933e-be7d5b16a4d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mw_capture">
+      <UniqueIdentifier>{4a7db072-55a4-455e-a8a1-06ce87146818}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="opengl_render">
+      <UniqueIdentifier>{b921531c-bf65-4b78-9bf8-33a7f7223ca1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ring_buffer">
+      <UniqueIdentifier>{7ab3e76e-4e20-456b-a7ae-893317d63740}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{3ad5a60d-e5d0-48ea-a295-e5e039f6939f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

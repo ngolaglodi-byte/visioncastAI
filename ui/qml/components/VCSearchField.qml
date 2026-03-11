@@ -9,10 +9,10 @@ import QtQuick.Controls 2.15
 Rectangle {
     id: root
 
-    // ── Public API ─────────────────────────────────────────────────
-    property alias text:        field.text
-    property alias placeholderText: field.placeholderText
-    signal textChanged(string text)
+    // ── Public API ───��─────────────────────────────────────────────
+    property alias text:            field.text
+    property string placeholder:    "Search…"
+    signal searchTextChanged(string text)
 
     implicitHeight: 34
     implicitWidth:  240
@@ -26,26 +26,22 @@ Rectangle {
     // Search icon
     Text {
         id: icon
-        text: "🔍"
+        text: "\u{1F50D}"
         font.pixelSize: 13
-        anchors {
-            left:           parent.left
-            leftMargin:     10
-            verticalCenter: parent.verticalCenter
-        }
+        anchors.left:           parent.left
+        anchors.leftMargin:     10
+        anchors.verticalCenter: parent.verticalCenter
         opacity: 0.5
     }
 
     // Input field
     TextInput {
         id: field
-        anchors {
-            left:           icon.right
-            leftMargin:     6
-            right:          clearBtn.left
-            rightMargin:    4
-            verticalCenter: parent.verticalCenter
-        }
+        anchors.left:           icon.right
+        anchors.leftMargin:     6
+        anchors.right:          clearBtn.left
+        anchors.rightMargin:    4
+        anchors.verticalCenter: parent.verticalCenter
         color:              "#E6EDF3"
         selectionColor:     "#1F6FEB"
         selectedTextColor:  "#FFFFFF"
@@ -54,38 +50,34 @@ Rectangle {
         clip:               true
         focus:              true
 
-        property string placeholderText: "Search…"
-
         Text {
             visible: parent.text.length === 0
-            text:    parent.placeholderText
+            text:    root.placeholder
             color:   "#484F58"
             font:    parent.font
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        onTextChanged: root.textChanged(text)
+        onTextChanged: root.searchTextChanged(text)
 
-        Keys.onEscapePressed: { text = ""; root.textChanged("") }
+        Keys.onEscapePressed: { text = ""; root.searchTextChanged("") }
     }
 
     // Clear button
     Text {
         id:      clearBtn
         visible: field.text.length > 0
-        text:    "✕"
+        text:    "\u2717"
         color:   "#8B949E"
         font.pixelSize: 11
-        anchors {
-            right:          parent.right
-            rightMargin:    8
-            verticalCenter: parent.verticalCenter
-        }
+        anchors.right:          parent.right
+        anchors.rightMargin:    8
+        anchors.verticalCenter: parent.verticalCenter
 
         MouseArea {
             anchors.fill: parent
             cursorShape:  Qt.PointingHandCursor
-            onClicked:    { field.text = ""; root.textChanged(""); field.forceActiveFocus() }
+            onClicked:    { field.text = ""; root.searchTextChanged(""); field.forceActiveFocus() }
         }
 
         HoverHandler { onHoveredChanged: clearBtn.color = hovered ? "#E6EDF3" : "#8B949E" }

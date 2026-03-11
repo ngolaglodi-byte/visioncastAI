@@ -1,0 +1,9 @@
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\AVCaptureCSharp.exe.config
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\AVCaptureCSharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Bin\x64\Release\AVCaptureCSharp.pdb
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\Legacy_C#\GUI\AVCaptureCSharp\obj\x64\Release\AVCaptureCSharp.aboutForm.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\Legacy_C#\GUI\AVCaptureCSharp\obj\x64\Release\AVCaptureCSharp.mainForm.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\Legacy_C#\GUI\AVCaptureCSharp\obj\x64\Release\AVCaptureCSharp.Properties.Resources.resources
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\Legacy_C#\GUI\AVCaptureCSharp\obj\x64\Release\AVCaptureCSharp.csproj.GenerateResource.Cache
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\Legacy_C#\GUI\AVCaptureCSharp\obj\x64\Release\AVCaptureCSharp.exe
+C:\GitLab-Runner\builds\3efcb9f4\0\SupportGroup\mw_capture_sdk_windows\trunk\SDKv3\Examples\Legacy_C#\GUI\AVCaptureCSharp\obj\x64\Release\AVCaptureCSharp.pdb

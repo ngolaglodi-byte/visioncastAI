@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "av_record", "av_record.csproj", "{1F42E14B-7393-415E-BADB-310CC756FBED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Debug|x64.ActiveCfg = Debug|x64
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Debug|x64.Build.0 = Debug|x64
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Debug|x86.ActiveCfg = Debug|x86
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Debug|x86.Build.0 = Debug|x86
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Release|x64.ActiveCfg = Release|x64
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Release|x64.Build.0 = Release|x64
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Release|x86.ActiveCfg = Release|x86
+		{1F42E14B-7393-415E-BADB-310CC756FBED}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4D85702F-5A94-4B0D-880A-88395F4EF727}
+	EndGlobalSection
+EndGlobal

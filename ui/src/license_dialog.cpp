@@ -1,9 +1,10 @@
 /// @file license_dialog.cpp
-/// @brief LicenseDialog implementation.
+/// @brief Dialog for activating, validating, and managing a license key.
 
 #include "visioncast_ui/license_dialog.h"
-#include "visioncast_ui/license_manager.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -13,91 +14,96 @@
 
 namespace visioncast_ui {
 
+static QString configPathForSave()
+{
+    // Save next to the current working directory: <cwd>/config/license.json
+    // This matches how MainWindow loads it: "config/license.json"
+    return QDir::current().filePath(QStringLiteral("config/license.json"));
+}
+
 LicenseDialog::LicenseDialog(LicenseManager* manager, QWidget* parent)
     : QDialog(parent)
     , manager_(manager)
 {
-    setWindowTitle(tr("License Management"));
-    setMinimumWidth(460);
     setupUi();
     connectSignals();
     updateStatusDisplay();
 }
 
-// ── UI Setup ────────────────────────────────────────────────────────
-
 void LicenseDialog::setupUi() {
-    auto* mainLayout = new QVBoxLayout(this);
+    setWindowTitle(tr("License Management"));
+    setModal(true);
 
-    // Welcome banner
-    auto* banner = new QLabel(this);
-    banner->setText(tr(
-        "<h2>Bienvenue dans VisionCast-AI</h2>"
-        "<p>Veuillez entrer votre clé de licence pour activer le logiciel.</p>"
-        "<p style='color: #8b949e; font-size: 11px;'>"
-        "Licence officielle Prestige Technologie Company</p>"));
-    banner->setWordWrap(true);
-    banner->setAlignment(Qt::AlignCenter);
-    mainLayout->addWidget(banner);
+    auto* root = new QVBoxLayout(this);
 
-    // Machine ID (read-only)
+    auto* title = new QLabel(tr("<h2>Bienvenue dans VisionCast-AI</h2>"), this);
+    title->setAlignment(Qt::AlignHCenter);
+    root->addWidget(title);
+
+    auto* subtitle = new QLabel(
+        tr("Veuillez entrer votre clé de licence pour activer le logiciel."),
+        this);
+    subtitle->setAlignment(Qt::AlignHCenter);
+    root->addWidget(subtitle);
+
+    // Machine ID row
+    auto* machineRow = new QHBoxLayout();
+    machineRow->addWidget(new QLabel(tr("Machine ID:"), this));
     machineIdLabel_ = new QLabel(this);
     machineIdLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    {
-        auto* row = new QHBoxLayout;
-        row->addWidget(new QLabel(tr("Machine ID:"), this));
-        row->addWidget(machineIdLabel_, 1);
-        mainLayout->addLayout(row);
-    }
-    machineIdLabel_->setText(manager_->machineId());
+    machineRow->addWidget(machineIdLabel_, 1);
+    root->addLayout(machineRow);
 
-    // License key input
+    // Key row
+    auto* keyRow = new QHBoxLayout();
+    keyRow->addWidget(new QLabel(tr("License Key:"), this));
     keyInput_ = new QLineEdit(this);
     keyInput_->setPlaceholderText(tr("XXXX-XXXX-XXXX-XXXX"));
-    keyInput_->setText(manager_->licenseKey());
-    {
-        auto* row = new QHBoxLayout;
-        row->addWidget(new QLabel(tr("License Key:"), this));
-        row->addWidget(keyInput_, 1);
-        mainLayout->addLayout(row);
-    }
+    keyRow->addWidget(keyInput_, 1);
+    root->addLayout(keyRow);
 
-    // Status label
-    statusLabel_ = new QLabel(this);
-    statusLabel_->setStyleSheet("font-weight: bold;");
-    {
-        auto* row = new QHBoxLayout;
-        row->addWidget(new QLabel(tr("Status:"), this));
-        row->addWidget(statusLabel_, 1);
-        mainLayout->addLayout(row);
-    }
+    // Status row
+    auto* statusRow = new QHBoxLayout();
+    statusRow->addWidget(new QLabel(tr("Status:"), this));
+    statusLabel_ = new QLabel(tr("Not activated"), this);
+    statusRow->addWidget(statusLabel_, 1);
+    root->addLayout(statusRow);
 
-    // Action buttons
-    activateButton_   = new QPushButton(tr("Activate"), this);
+    // Buttons
+    auto* buttonsRow = new QHBoxLayout();
+    activateButton_ = new QPushButton(tr("Activate"), this);
     deactivateButton_ = new QPushButton(tr("Deactivate"), this);
-    checkButton_      = new QPushButton(tr("Check Status"), this);
-    closeButton_      = new QPushButton(tr("Close"), this);
-    {
-        auto* row = new QHBoxLayout;
-        row->addWidget(activateButton_);
-        row->addWidget(deactivateButton_);
-        row->addWidget(checkButton_);
-        row->addStretch();
-        row->addWidget(closeButton_);
-        mainLayout->addLayout(row);
+    checkButton_ = new QPushButton(tr("Check Status"), this);
+    closeButton_ = new QPushButton(tr("Close"), this);
+
+    buttonsRow->addWidget(activateButton_);
+    buttonsRow->addWidget(deactivateButton_);
+    buttonsRow->addWidget(checkButton_);
+    buttonsRow->addStretch(1);
+    buttonsRow->addWidget(closeButton_);
+    root->addLayout(buttonsRow);
+
+    // Init values
+    if (manager_) {
+        machineIdLabel_->setText(manager_->machineId());
+        if (!manager_->licenseKey().isEmpty())
+            keyInput_->setText(manager_->licenseKey());
+    } else {
+        machineIdLabel_->setText(tr("N/A"));
     }
 }
 
 void LicenseDialog::connectSignals() {
-    connect(activateButton_,   &QPushButton::clicked,
-            this, &LicenseDialog::onActivate);
-    connect(deactivateButton_, &QPushButton::clicked,
-            this, &LicenseDialog::onDeactivate);
-    connect(checkButton_,      &QPushButton::clicked,
-            this, &LicenseDialog::onCheckStatus);
-    connect(closeButton_,      &QPushButton::clicked,
-            this, &QDialog::accept);
+    // UI -> slots
+    connect(activateButton_, &QPushButton::clicked, this, &LicenseDialog::onActivate);
+    connect(deactivateButton_, &QPushButton::clicked, this, &LicenseDialog::onDeactivate);
+    connect(checkButton_, &QPushButton::clicked, this, &LicenseDialog::onCheckStatus);
+    connect(closeButton_, &QPushButton::clicked, this, &QDialog::reject);
 
+    if (!manager_)
+        return;
+
+    // Manager -> slots
     connect(manager_, &LicenseManager::activationSucceeded,
             this, &LicenseDialog::onActivationSucceeded);
     connect(manager_, &LicenseManager::activationFailed,
@@ -114,122 +120,182 @@ void LicenseDialog::connectSignals() {
             this, &LicenseDialog::onNetworkError);
 }
 
-// ── Slot Implementations ────────────────────────────────────────────
+void LicenseDialog::setUiBusy(bool busy) {
+    if (activateButton_) activateButton_->setEnabled(!busy);
+    if (deactivateButton_) deactivateButton_->setEnabled(!busy);
+    if (checkButton_) checkButton_->setEnabled(!busy);
+    if (closeButton_) closeButton_->setEnabled(!busy);
+}
+
+void LicenseDialog::updateStatusDisplay() {
+    if (!manager_ || !statusLabel_)
+        return;
+
+    switch (manager_->status()) {
+    case LicenseManager::LicenseStatus::Valid:
+        statusLabel_->setText(tr("✓ Licensed"));
+        break;
+    case LicenseManager::LicenseStatus::Expired:
+        statusLabel_->setText(tr("Expired"));
+        break;
+    case LicenseManager::LicenseStatus::Suspended:
+        statusLabel_->setText(tr("Suspended"));
+        break;
+    case LicenseManager::LicenseStatus::Invalid:
+        statusLabel_->setText(tr("Invalid"));
+        break;
+    default:
+        statusLabel_->setText(tr("Not activated"));
+        break;
+    }
+}
 
 void LicenseDialog::onActivate() {
-    const QString key = keyInput_->text().trimmed();
+    if (!manager_)
+        return;
+
+    const QString key = keyInput_ ? keyInput_->text().trimmed() : QString();
     if (key.isEmpty()) {
-        QMessageBox::warning(this, tr("License"),
-                             tr("Please enter a license key."));
+        QMessageBox::warning(this, tr("Activation"), tr("Please enter a license key."));
         return;
     }
+
+    if (statusLabel_) statusLabel_->setText(tr("Contacting server..."));
     setUiBusy(true);
     manager_->activateKey(key);
 }
 
 void LicenseDialog::onDeactivate() {
-    const QString key = keyInput_->text().trimmed();
+    if (!manager_)
+        return;
+
+    const QString key = keyInput_ ? keyInput_->text().trimmed() : QString();
     if (key.isEmpty()) {
-        QMessageBox::warning(this, tr("License"),
-                             tr("Please enter a license key."));
+        QMessageBox::warning(this, tr("Deactivation"), tr("Please enter a license key."));
         return;
     }
+
+    if (statusLabel_) statusLabel_->setText(tr("Contacting server..."));
     setUiBusy(true);
     manager_->deactivateKey(key);
 }
 
 void LicenseDialog::onCheckStatus() {
-    const QString key = keyInput_->text().trimmed();
+    if (!manager_)
+        return;
+
+    const QString key = keyInput_ ? keyInput_->text().trimmed() : QString();
     if (key.isEmpty()) {
-        QMessageBox::warning(this, tr("License"),
-                             tr("Please enter a license key."));
+        QMessageBox::warning(this, tr("Status"), tr("Please enter a license key."));
         return;
     }
+
+    if (statusLabel_) statusLabel_->setText(tr("Contacting server..."));
     setUiBusy(true);
     manager_->checkStatus(key);
 }
 
 void LicenseDialog::onActivationSucceeded(const QString& message) {
     setUiBusy(false);
+
+    // IMPORTANT: Some APIs don't echo back "key" in the JSON response.
+    // Force persistence using the key the user typed.
+    const QString typedKey = keyInput_ ? keyInput_->text().trimmed() : QString();
+    if (!typedKey.isEmpty()) {
+        // Requires setLicenseKey(...) in LicenseManager (add it if missing).
+        manager_->setLicenseKey(typedKey);
+    }
+
+    const QString path = configPathForSave();
+    const bool saved = manager_->saveConfig(path);
+
     updateStatusDisplay();
-    QMessageBox::information(this, tr("License Activated"), message);
+
+    if (!saved) {
+        QMessageBox::warning(this, tr("Activation"),
+                             tr("License activated, but could not save:\n%1\n\n"
+                                "Check folder permissions and that the 'config' folder exists.")
+                                 .arg(QFileInfo(path).absoluteFilePath()));
+    }
+
+    if (!message.isEmpty())
+        QMessageBox::information(this, tr("Activation"), message);
+
+    accept();
 }
 
 void LicenseDialog::onActivationFailed(const QString& error) {
     setUiBusy(false);
     updateStatusDisplay();
-    QMessageBox::critical(this, tr("Activation Failed"), error);
+    QMessageBox::critical(this, tr("Activation failed"),
+                          error.isEmpty() ? tr("Activation failed.") : error);
 }
 
-void LicenseDialog::onValidationCompleted(bool valid,
-                                           const QString& message) {
+void LicenseDialog::onValidationCompleted(bool valid, const QString& message) {
     setUiBusy(false);
+
+    if (valid) {
+        const QString typedKey = keyInput_ ? keyInput_->text().trimmed() : QString();
+        if (!typedKey.isEmpty()) {
+            manager_->setLicenseKey(typedKey);
+        }
+
+        manager_->saveConfig(configPathForSave());
+    }
+
     updateStatusDisplay();
-    if (valid)
-        QMessageBox::information(this, tr("License Valid"), message);
-    else
-        QMessageBox::warning(this, tr("License Invalid"), message);
+
+    if (!message.isEmpty())
+        QMessageBox::information(this, tr("Validation"), message);
+
+    if (valid) {
+        accept();
+    }
 }
 
 void LicenseDialog::onDeactivationSucceeded(const QString& message) {
     setUiBusy(false);
+
+    // After deactivation, LicenseManager clears the key; persist that.
+    manager_->saveConfig(configPathForSave());
+
     updateStatusDisplay();
-    QMessageBox::information(this, tr("License Deactivated"), message);
+    if (!message.isEmpty())
+        QMessageBox::information(this, tr("Deactivation"), message);
 }
 
 void LicenseDialog::onDeactivationFailed(const QString& error) {
     setUiBusy(false);
     updateStatusDisplay();
-    QMessageBox::critical(this, tr("Deactivation Failed"), error);
+    QMessageBox::critical(this, tr("Deactivation failed"),
+                          error.isEmpty() ? tr("Deactivation failed.") : error);
 }
 
-void LicenseDialog::onStatusChecked(LicenseManager::LicenseStatus /*status*/,
-                                     const QString& message) {
+void LicenseDialog::onStatusChecked(LicenseManager::LicenseStatus status,
+                                   const QString& message) {
+    Q_UNUSED(status);
+
     setUiBusy(false);
     updateStatusDisplay();
-    QMessageBox::information(this, tr("License Status"), message);
+
+    if (!message.isEmpty())
+        QMessageBox::information(this, tr("Status"), message);
+
+    if (manager_ && manager_->isLicensed()) {
+        const QString typedKey = keyInput_ ? keyInput_->text().trimmed() : QString();
+        if (!typedKey.isEmpty()) {
+            manager_->setLicenseKey(typedKey);
+        }
+        manager_->saveConfig(configPathForSave());
+        accept();
+    }
 }
 
 void LicenseDialog::onNetworkError(const QString& error) {
     setUiBusy(false);
-    QMessageBox::critical(this, tr("Network Error"), error);
-}
-
-// ── Helpers ─────────────────────────────────────────────────────────
-
-void LicenseDialog::setUiBusy(bool busy) {
-    activateButton_->setEnabled(!busy);
-    deactivateButton_->setEnabled(!busy);
-    checkButton_->setEnabled(!busy);
-    keyInput_->setEnabled(!busy);
-    if (busy)
-        statusLabel_->setText(tr("Contacting server…"));
-}
-
-void LicenseDialog::updateStatusDisplay() {
-    switch (manager_->status()) {
-    case LicenseManager::LicenseStatus::Valid:
-        statusLabel_->setText(tr("✔ Licensed"));
-        statusLabel_->setStyleSheet("font-weight: bold; color: #2ea043;");
-        break;
-    case LicenseManager::LicenseStatus::Expired:
-        statusLabel_->setText(tr("⚠ Expired"));
-        statusLabel_->setStyleSheet("font-weight: bold; color: #d29922;");
-        break;
-    case LicenseManager::LicenseStatus::Suspended:
-        statusLabel_->setText(tr("⛔ Suspended"));
-        statusLabel_->setStyleSheet("font-weight: bold; color: #f85149;");
-        break;
-    case LicenseManager::LicenseStatus::Invalid:
-        statusLabel_->setText(tr("✘ Invalid"));
-        statusLabel_->setStyleSheet("font-weight: bold; color: #f85149;");
-        break;
-    case LicenseManager::LicenseStatus::Unknown:
-    default:
-        statusLabel_->setText(tr("Not activated"));
-        statusLabel_->setStyleSheet("font-weight: bold; color: #8b949e;");
-        break;
-    }
+    if (statusLabel_) statusLabel_->setText(tr("Network error"));
+    QMessageBox::critical(this, tr("Network Error"),
+                          error.isEmpty() ? tr("Network error.") : error);
 }
 
 } // namespace visioncast_ui

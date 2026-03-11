@@ -15,7 +15,9 @@ Rectangle {
     // ── Header ─────────────────────────────────────────────────────
     Column {
         id:      headerArea
-        anchors { top: parent.top; left: parent.left; right: parent.right }
+        anchors.top:   parent.top
+        anchors.left:  parent.left
+        anchors.right: parent.right
         spacing: 0
 
         // Title bar
@@ -23,7 +25,14 @@ Rectangle {
             width:  parent.width
             height: 44
             color:  "#1C2128"
-            border.bottom: 1
+
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left:   parent.left
+                anchors.right:  parent.right
+                height: 1
+                color:  "#30363D"
+            }
 
             Text {
                 text:  "VIDEO SOURCES"
@@ -32,14 +41,18 @@ Rectangle {
                 font.weight:    Font.DemiBold
                 font.letterSpacing: 1.0
                 font.family:    "Segoe UI, Inter, Helvetica Neue, Arial"
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                anchors.left: parent.left
+                anchors.leftMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             VCButton {
                 id:      refreshBtn
-                text:    "⟳"
+                text:    "\u21BB"
                 width:   28; height: 28
-                anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
                 onClicked: bridge.refreshSources()
             }
         }
@@ -50,16 +63,20 @@ Rectangle {
             height: 48
 
             VCSearchField {
-                placeholderText: "Search sources…"
-                anchors { left: parent.left; leftMargin: 8; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                onTextChanged: (t) => { filterText = t }
+                placeholder: "Search sources\u2026"
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                onSearchTextChanged: function(t) { filterText = t }
             }
         }
     }
 
     property string filterText: ""
 
-    // ── Source List ────────────────────────────────────────────────
+    // ── Source List ─────────────────────────────────────────────────
     ListView {
         id:      sourceList
         anchors {
@@ -96,7 +113,7 @@ Rectangle {
         Text {
             visible:        sourceList.count === 0
             anchors.centerIn: parent
-            text:           "No video sources found.\nClick ⟳ to scan devices."
+            text:           "No video sources found.\nClick \u21BB to scan devices."
             color:          "#484F58"
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: 12
