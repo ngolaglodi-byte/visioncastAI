@@ -361,7 +361,7 @@ ApplicationWindow {
                 ComboBox {
                     id: themeSettingsCombo
                     model: ["Dark", "Light", "Ocean", "Prestige"]
-                    currentIndex: themeSettingsCombo.model.indexOf(settingsDialog.selectedTheme)
+                    currentIndex: Math.max(0, model.indexOf(settingsDialog.selectedTheme))
                     onCurrentIndexChanged: settingsDialog.selectedTheme = themeSettingsCombo.model[currentIndex]
                 }
             }

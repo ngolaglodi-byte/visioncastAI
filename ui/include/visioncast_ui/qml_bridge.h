@@ -12,6 +12,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QTimer>
+#include <atomic>
 #include <memory>
 
 namespace visioncast_ui {
@@ -230,7 +231,7 @@ private:
     QString currentAccentColor_ = QStringLiteral("#1F6FEB");
     QString currentTemplate_    = QStringLiteral("Default");
     int     selectedSourceIndex_ = -1;
-    int     nextTalentId_        = 100;
+    std::atomic<int> nextTalentId_{100};
 
     QVariantList videoSources_;
     QVariantList talents_;

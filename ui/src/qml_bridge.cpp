@@ -502,7 +502,7 @@ void QmlBridge::addTalent(const QString& name, const QString& role,
                           const QString& organisation, const QString& photo)
 {
     QVariantMap talent;
-    talent[QStringLiteral("id")]           = QStringLiteral("T%1").arg(nextTalentId_++);
+    talent[QStringLiteral("id")]           = QStringLiteral("T%1").arg(nextTalentId_.fetch_add(1));
     talent[QStringLiteral("name")]         = name;
     talent[QStringLiteral("role")]         = role;
     talent[QStringLiteral("organisation")] = organisation;

@@ -135,7 +135,8 @@ KNOWN_ENCODINGS, KNOWN_METADATA = load_talent_encodings(TALENTS, PROJECT_ROOT)
 
 def draw_lower_third(frame, title, subtitle):
     """Draw a lower-third overlay on the frame."""
-    if not HAS_OPENCV or cv2 is None:
+    if not HAS_OPENCV:
+        logger.debug("OpenCV not available, skipping lower-third overlay rendering.")
         return frame
         
     h, w, _ = frame.shape
