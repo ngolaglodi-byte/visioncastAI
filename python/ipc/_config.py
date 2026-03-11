@@ -49,11 +49,12 @@ def validate_loopback_endpoint(endpoint: str) -> bool:
     Raises:
         ValueError: If the endpoint format is invalid.
     """
+    # Allow IPC endpoints (ipc://) which are always local
+    if endpoint.startswith("ipc://"):
+        return True
+
     match = _ENDPOINT_PATTERN.match(endpoint)
     if not match:
-        # Allow IPC endpoints (ipc://) which are always local
-        if endpoint.startswith("ipc://"):
-            return True
         raise ValueError(
             f"Invalid endpoint format: {endpoint}. "
             "Expected tcp://host:port or ipc://path."

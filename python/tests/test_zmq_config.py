@@ -249,7 +249,10 @@ class TestLoopbackValidation:
                 cfg_mod.resolve_zmq_pub_endpoint(None)
 
     def test_invalid_endpoint_format(self):
-        """Invalid endpoint format should raise ValueError."""
+        """Invalid endpoint format should raise ValueError with helpful message."""
         import ipc._config as cfg_mod
-        with pytest.raises(ValueError, match="Invalid endpoint format"):
+        with pytest.raises(
+            ValueError,
+            match=r"Invalid endpoint format.*Expected tcp://host:port or ipc://path"
+        ):
             cfg_mod.validate_loopback_endpoint("invalid://format")

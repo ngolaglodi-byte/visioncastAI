@@ -28,13 +28,17 @@ namespace detail {
 /// Built-in default ZMQ PUB endpoint — single source of truth for C++.
 constexpr const char* kZmqDefaultPubEndpoint = "tcp://127.0.0.1:5557";
 
+/// IPC prefix for local communication
+constexpr const char* kIpcPrefix = "ipc://";
+constexpr size_t kIpcPrefixLen = 6;
+
 /// Validate that an endpoint uses a loopback address.
 ///
 /// @param endpoint  The ZMQ endpoint string (e.g., "tcp://127.0.0.1:5557").
 /// @return True if the endpoint is a loopback address, false otherwise.
 inline bool isLoopbackEndpoint(const std::string& endpoint) {
     // Allow IPC endpoints (always local)
-    if (endpoint.substr(0, 6) == "ipc://") {
+    if (endpoint.compare(0, kIpcPrefixLen, kIpcPrefix) == 0) {
         return true;
     }
     
@@ -46,7 +50,9 @@ inline bool isLoopbackEndpoint(const std::string& endpoint) {
     }
     
     std::string host = match[1].str();
-    // Convert to lowercase for comparison
+    // Convert to lowercase for comparison.
+    // The double cast (char -> unsigned char -> tolower result -> char) is needed
+    // because std::tolower has undefined behavior for negative char values.
     for (auto& c : host) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }

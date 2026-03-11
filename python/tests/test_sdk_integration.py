@@ -360,8 +360,9 @@ class TestSDKExceptionHandling:
         if not os.path.isfile(path):
             pytest.skip(f"{source_file} not found")
         text = _read(path)
-        # Should have either try-catch or conditional SDK guard
-        has_try_catch = "try" in text and "catch" in text
+        # Should have either try-catch blocks or conditional SDK guard
+        # Using more specific patterns to avoid false positives from comments
+        has_try_catch = re.search(r"\btry\s*\{", text) and re.search(r"\bcatch\s*\(", text)
         has_sdk_guard = "#ifdef HAS_" in text
         assert has_try_catch or has_sdk_guard, (
             f"{source_file} should have exception handling or SDK guard"
@@ -380,7 +381,8 @@ class TestSDKExceptionHandling:
             pytest.skip(f"{source_file} not found")
         text = _read(path)
         # Should catch SDKError or have SDK guard (stub mode)
-        has_catch_sdk_error = "catch" in text and "SDKError" in text
+        # Pattern matches catch blocks that reference SDKError
+        has_catch_sdk_error = re.search(r"\bcatch\s*\([^)]*SDKError", text)
         has_sdk_guard = "#ifdef HAS_" in text
         assert has_catch_sdk_error or has_sdk_guard, (
             f"{source_file} should catch SDKError or have SDK guard"
@@ -399,7 +401,8 @@ class TestSDKExceptionHandling:
             pytest.skip(f"{source_file} not found")
         text = _read(path)
         # Should throw specific error or have SDK guard (stub mode)
-        has_specific_throw = f"throw {error_type}" in text
+        # Pattern matches throw statements with optional whitespace
+        has_specific_throw = re.search(rf"\bthrow\s+{error_type}\b", text)
         has_sdk_guard = "#ifdef HAS_" in text
         assert has_specific_throw or has_sdk_guard, (
             f"{source_file} should throw {error_type} or have SDK guard"
