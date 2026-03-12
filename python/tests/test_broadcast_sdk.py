@@ -155,7 +155,7 @@ class TestBroadcastSources:
 
 class TestCMakeIntegration:
     """Verify sdk/CMakeLists.txt includes all new source files.
-    
+
     Note: Conditional classes (DEPRECATED) are checked separately since they
     are compiled only when ENABLE_SDK_RTMP=ON.
     """
@@ -164,7 +164,10 @@ class TestCMakeIntegration:
     def cmake_text(self):
         return _read(SDK_CMAKE)
 
-    @pytest.mark.parametrize("cls_name", [c for c in BROADCAST_CLASSES.keys() if c not in CONDITIONAL_CLASSES])
+    @pytest.mark.parametrize(
+        "cls_name",
+        [c for c in BROADCAST_CLASSES.keys() if c not in CONDITIONAL_CLASSES]
+    )
     def test_source_in_cmake(self, cmake_text, cls_name):
         src = BROADCAST_CLASSES[cls_name][1]
         assert src in cmake_text, (
@@ -177,7 +180,8 @@ class TestCMakeIntegration:
         src = BROADCAST_CLASSES[cls_name][1]
         # The source should still be mentioned in CMakeLists.txt (within conditional block)
         assert src in cmake_text, (
-            f"{src} not found in sdk/CMakeLists.txt (expected in conditional ENABLE_SDK_RTMP block)"
+            f"{src} not found in sdk/CMakeLists.txt "
+            f"(expected in conditional ENABLE_SDK_RTMP block)"
         )
 
 
